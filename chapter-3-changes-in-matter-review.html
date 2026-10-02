@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Chapter 3: Changes in Matter Review | Science</title>
+<style>
+:root{--navy:#173b63;--blue:#1769aa;--teal:#087f75;--green:#e8f3d5;--ink:#1d2935;--muted:#536477;--line:#cbd5df;--paper:#fff;--bg:#f3f6f8;--gold:#f4c542}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:1.55}
+main{max-width:1000px;margin:0 auto;padding:18px 16px 48px}
+header{background:var(--paper);border:2px solid var(--line);border-radius:18px;padding:22px;margin-bottom:18px}
+h1{font-size:clamp(27px,4vw,36px);line-height:1.2;color:var(--navy);margin:0 0 8px}
+.subtitle{color:var(--muted);margin:0}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center}
+button,.btn{font:inherit;font-weight:700;border:2px solid var(--blue);border-radius:12px;background:#fff;color:var(--navy);padding:12px 16px;min-height:48px;cursor:pointer}
+button.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+button.warn{border-color:#9a7b17;color:#574300}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:4px solid #f4c542;outline-offset:2px}
+button:active{transform:translateY(1px)}
+#saved{font-size:15px;color:#17633e;font-weight:700;margin-left:auto}
+.section-heading{background:var(--green);border-left:7px solid var(--teal);border-radius:10px;padding:12px 15px;margin:22px 0 12px}
+.section-heading h2{font-size:23px;color:var(--navy);margin:0 0 4px}
+.directions{margin:0 0 8px}
+.question{background:var(--paper);border:2px solid var(--line);border-radius:15px;padding:18px;margin:12px 0;box-shadow:0 2px 6px #173b630d}
+.qtop{display:flex;gap:12px;align-items:flex-start}
+.qnum{flex:0 0 38px;height:38px;border-radius:10px;background:#e5eef8;color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:800}
+.qbody{flex:1;min-width:0}
+.prompt{font-weight:700;margin:3px 0 12px}
+.read{font-size:15px;padding:8px 12px;min-height:40px;margin:0 0 12px}
+label{display:block;font-weight:600;margin:10px 0 5px}
+input[type=text],input[type=number],textarea,select{font:inherit;color:var(--ink);background:#fff;border:2px solid #9eacbb;border-radius:10px;padding:12px;width:100%;min-height:48px}
+textarea{min-height:116px;resize:vertical}
+textarea::placeholder,input::placeholder{color:#647487}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px;margin:8px 0}
+.choice{display:flex;align-items:center;gap:10px;border:2px solid #cbd5df;border-radius:11px;padding:10px 12px;min-height:48px;background:#fff;font-weight:500;margin:0}
+.choice input{width:22px;height:22px;accent-color:var(--teal);flex:0 0 auto}
+.inline-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.feedback{min-height:28px;margin-top:10px;font-weight:800;color:#17633e}
+.feedback.wrong{color:#8a5a00}
+.feedback.review{color:#365a7d}
+.hint{color:var(--muted);font-size:15px;margin:6px 0}
+canvas{display:block;width:100%;height:220px;border:2px dashed #8092a5;border-radius:10px;background:#fff;touch-action:none}
+.canvas-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.results{background:#fff;border:2px solid var(--line);border-radius:15px;padding:18px;margin-top:24px}
+.results h2{color:var(--navy);margin:0 0 8px}
+.results h3{font-size:18px;color:var(--teal);margin:18px 0 6px}
+.result-list{padding-left:24px;margin:4px 0}
+.result-item{margin:6px 0;overflow-wrap:anywhere}
+.result-response{font-weight:400;white-space:pre-wrap}
+#resultSummary{color:var(--muted);margin:4px 0 12px}
+footer{color:var(--muted);font-size:14px;text-align:center;margin-top:20px}
+@media(max-width:600px){main{padding:10px}.question{padding:13px}.qnum{flex-basis:32px;height:32px}.toolbar button{width:100%}#saved{margin-left:0;width:100%}.choices{grid-template-columns:1fr}}
+@media print{
+ body{background:#fff;font-size:12pt}main{max-width:none;padding:0}
+ header,.question,.results{box-shadow:none;border:1px solid #aaa;break-inside:avoid}
+ .toolbar,.read,.canvas-actions,footer{display:none!important}
+ .question{margin:8px 0;padding:10px}
+ textarea,input,select{border:1px solid #777!important;min-height:0;padding:4px!important}
+ textarea{height:auto;white-space:pre-wrap}
+ .section-heading{break-after:avoid}
+ .feedback{color:#111!important}
+ #teacherResults{break-before:page}
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Chapter 3: Changes in Matter Review</h1>
+<p class="subtitle">Complete the review. You may answer in any order and check your work as you go.</p>
+<div class="toolbar">
+<button class="primary" type="button" id="checkTop">Check My Answers So Far</button>
+<button type="button" id="printTop">Print / Save Results as PDF</button>
+<button class="warn" type="button" id="clearTop">Clear Saved Work / Start Over</button>
+<span id="saved" role="status" aria-live="polite">Saved ✓</span>
+</div>
+</header>
+
+<div class="section-heading"><h2>Recalling Facts</h2>
+<p class="directions">Answer questions 1–10. For questions with choices, tap or select your response. For questions that ask you to explain, use the text box. Read Aloud is optional.</p>
+<button class="read" type="button" data-read="directions-facts">🔊 Read Directions</button></div>
+
+<section class="question" data-q="1" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">1</div><div class="qbody"><p class="prompt">Describe three properties of matter.</p><button class="read" type="button" data-read="q1">🔊 Read Question</button>
+<textarea id="q1" aria-label="Answer to question 1" placeholder="Use iPad Dictation or type your answer."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="2" data-type="multi-fields">
+<div class="qtop"><div class="qnum">2</div><div class="qbody"><p class="prompt">Determine whether each property is a physical or chemical property.</p><button class="read" type="button" data-read="q2">🔊 Read Question</button>
+<div class="inline-fields">
+<div><label for="q2a">a. Boiling point</label><select id="q2a"><option value="">Choose…</option><option>physical</option><option>chemical</option></select></div>
+<div><label for="q2b">b. Conductivity</label><select id="q2b"><option value="">Choose…</option><option>physical</option><option>chemical</option></select></div>
+<div><label for="q2c">c. Flammability</label><select id="q2c"><option value="">Choose…</option><option>physical</option><option>chemical</option></select></div>
+<div><label for="q2d">d. Reflectivity</label><select id="q2d"><option value="">Choose…</option><option>physical</option><option>chemical</option></select></div>
+<div><label for="q2e">e. Toxicity</label><select id="q2e"><option value="">Choose…</option><option>physical</option><option>chemical</option></select></div>
+<div><label for="q2f">f. Transparency</label><select id="q2f"><option value="">Choose…</option><option>physical</option><option>chemical</option></select></div>
+</div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="3" data-type="select" data-answer="physical">
+<div class="qtop"><div class="qnum">3</div><div class="qbody"><p class="prompt">Which type of change in matter does not result in a new substance forming?</p><button class="read" type="button" data-read="q3">🔊 Read Question</button>
+<div class="choices"><label class="choice"><input type="radio" name="q3" value="physical">Physical change</label><label class="choice"><input type="radio" name="q3" value="chemical">Chemical change</label></div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="4" data-type="checks" data-answer="any-three">
+<div class="qtop"><div class="qnum">4</div><div class="qbody"><p class="prompt">List three signs that you can use to tell whether a chemical change has occurred. Select three.</p><button class="read" type="button" data-read="q4">🔊 Read Question</button>
+<div class="choices">
+<label class="choice"><input type="checkbox" name="q4" value="A change in smell">A change in smell</label>
+<label class="choice"><input type="checkbox" name="q4" value="A change in color">A change in color</label>
+<label class="choice"><input type="checkbox" name="q4" value="A change in temperature">A change in temperature</label>
+<label class="choice"><input type="checkbox" name="q4" value="The formation of a gas">The formation of a gas</label>
+<label class="choice"><input type="checkbox" name="q4" value="The formation of a precipitate">The formation of a precipitate</label>
+</div><p class="hint">Choose any three of the listed signs.</p><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="5" data-type="select" data-answer="absorbed">
+<div class="qtop"><div class="qnum">5</div><div class="qbody"><p class="prompt">When chemical bonds are broken, is energy absorbed or released?</p><button class="read" type="button" data-read="q5">🔊 Read Question</button>
+<div class="choices"><label class="choice"><input type="radio" name="q5" value="absorbed">Absorbed</label><label class="choice"><input type="radio" name="q5" value="released">Released</label></div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="6" data-type="select" data-answer="true">
+<div class="qtop"><div class="qnum">6</div><div class="qbody"><p class="prompt">True or False: Chemical bonds can be ionic or covalent.</p><button class="read" type="button" data-read="q6">🔊 Read Question</button>
+<div class="choices"><label class="choice"><input type="radio" name="q6" value="true">True</label><label class="choice"><input type="radio" name="q6" value="false">False</label></div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="7" data-type="select" data-answer="false">
+<div class="qtop"><div class="qnum">7</div><div class="qbody"><p class="prompt">True or False: Chemical reactions change products into reactants.</p><button class="read" type="button" data-read="q7">🔊 Read Question</button>
+<div class="choices"><label class="choice"><input type="radio" name="q7" value="true">True</label><label class="choice"><input type="radio" name="q7" value="false">False</label></div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="8" data-type="select" data-answer="decrease">
+<div class="qtop"><div class="qnum">8</div><div class="qbody"><p class="prompt">Do reactions that absorb energy cause the surrounding temperature to increase or decrease?</p><button class="read" type="button" data-read="q8">🔊 Read Question</button>
+<div class="choices"><label class="choice"><input type="radio" name="q8" value="increase">Increase</label><label class="choice"><input type="radio" name="q8" value="decrease">Decrease</label></div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="9" data-type="select" data-answer="high">
+<div class="qtop"><div class="qnum">9</div><div class="qbody"><p class="prompt">Do bases typically have a low or high pH?</p><button class="read" type="button" data-read="q9">🔊 Read Question</button>
+<div class="choices"><label class="choice"><input type="radio" name="q9" value="low">Low</label><label class="choice"><input type="radio" name="q9" value="high">High</label></div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="10" data-type="checks" data-answer="conservation">
+<div class="qtop"><div class="qnum">10</div><div class="qbody"><p class="prompt">Choose all that apply. According to the law of conservation of matter, matter…</p><button class="read" type="button" data-read="q10">🔊 Read Question</button>
+<div class="choices">
+<label class="choice"><input type="checkbox" name="q10" value="can be created">can be created</label>
+<label class="choice"><input type="checkbox" name="q10" value="cannot be created">cannot be created</label>
+<label class="choice"><input type="checkbox" name="q10" value="can be destroyed">can be destroyed</label>
+<label class="choice"><input type="checkbox" name="q10" value="cannot be destroyed">cannot be destroyed</label>
+<label class="choice"><input type="checkbox" name="q10" value="can change form">can change form</label>
+</div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<div class="section-heading"><h2>Understanding Concepts</h2>
+<p class="directions">Answer questions 11–19. Use complete explanations when asked. For question 19, draw a model of the reaction using the drawing area.</p>
+<button class="read" type="button" data-read="directions-concepts">🔊 Read Directions</button></div>
+
+<section class="question" data-q="11" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">11</div><div class="qbody"><p class="prompt">Why is it important to understand the physical and chemical properties of a material?</p><button class="read" type="button" data-read="q11">🔊 Read Question</button><textarea id="q11" placeholder="Use iPad Dictation or type your answer."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="12" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">12</div><div class="qbody"><p class="prompt">Explain how chemical changes are able to result in a new substance being formed.</p><button class="read" type="button" data-read="q12">🔊 Read Question</button><textarea id="q12" placeholder="Use iPad Dictation or type your answer."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="13" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">13</div><div class="qbody"><p class="prompt">Boiling water to make pasta is a change in matter that produces gas and results in a change in temperature. Would this be an example of a physical change or a chemical one? Explain.</p><button class="read" type="button" data-read="q13">🔊 Read Question</button><textarea id="q13" placeholder="Use iPad Dictation or type your answer."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="14" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">14</div><div class="qbody"><p class="prompt">Compare ionic and covalent chemical bonds.</p><button class="read" type="button" data-read="q14">🔊 Read Question</button><textarea id="q14" placeholder="Use iPad Dictation or type your answer."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="15" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">15</div><div class="qbody"><p class="prompt">Compare synthesis and decomposition reactions.</p><button class="read" type="button" data-read="q15">🔊 Read Question</button><textarea id="q15" placeholder="Use iPad Dictation or type your answer."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="16" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">16</div><div class="qbody"><p class="prompt">Use the graph to determine whether energy is being absorbed or released in the reaction shown. Explain your answer.</p><button class="read" type="button" data-read="q16">🔊 Read Question</button>
+<svg viewBox="0 0 440 245" role="img" aria-label="Reaction progress graph. Energy is on the vertical axis. The reactants begin at a lower energy level, the curve rises to a peak, then ends at a product energy level higher than the reactants.">
+<defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#52677b"/></marker></defs>
+<path d="M52 18 V204 H415" fill="none" stroke="#52677b" stroke-width="2" marker-end="url(#arr)"/>
+<text x="16" y="115" transform="rotate(-90 16 115)" fill="#34495e" font-size="15">Energy</text><text x="224" y="235" text-anchor="middle" fill="#34495e" font-size="15">Reaction Progress</text>
+<path d="M55 166 H112 C132 166 140 48 220 48 S290 105 318 105 H408" fill="none" stroke="#e46b4e" stroke-width="3"/>
+<path d="M55 166 H408" stroke="#a4b2c0" stroke-dasharray="5 5" fill="none"/>
+<text x="60" y="183" fill="#34495e" font-size="13">reactants</text><text x="328" y="97" fill="#34495e" font-size="13">products</text>
+<path d="M303 164 V108 M297 164 H309 M297 108 H309" stroke="#52677b" stroke-width="1.8" fill="none"/>
+</svg>
+<textarea id="q16" placeholder="Use iPad Dictation or type your explanation."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="17" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">17</div><div class="qbody"><p class="prompt">When we cook pancakes, we may find that the finished pancakes have a smaller mass than the batter used to make them. Explain what could account for this difference.</p><button class="read" type="button" data-read="q17">🔊 Read Question</button><textarea id="q17" placeholder="Use iPad Dictation or type your answer."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="18" data-type="number" data-answer="12">
+<div class="qtop"><div class="qnum">18</div><div class="qbody"><p class="prompt">According to the law of conservation of matter, a reaction that begins with 12 g of reactants must produce how many grams of products?</p><button class="read" type="button" data-read="q18">🔊 Read Question</button><label for="q18">Mass of products (g)</label><input id="q18" type="number" inputmode="decimal" step="any" placeholder="Enter a number"><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="19" data-type="canvas" data-review="true">
+<div class="qtop"><div class="qnum">19</div><div class="qbody"><p class="prompt">Draw a diagram to model the following chemical reaction: H₂O + C → CO + H₂</p><button class="read" type="button" data-read="q19">🔊 Read Question</button><p class="hint">Use your finger or a stylus to draw your model. You can also describe your model below.</p>
+<canvas id="q19canvas" width="900" height="360" aria-label="Drawing area for question 19"></canvas><div class="canvas-actions"><button type="button" id="eraseDrawing">Clear Drawing</button></div>
+<textarea id="q19text" placeholder="Optional: describe your model using iPad Dictation or typing."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<div class="section-heading"><h2>Critical Thinking</h2>
+<p class="directions">Answer questions 20–24. Explain your reasoning where the question asks you to do so.</p>
+<button class="read" type="button" data-read="directions-critical">🔊 Read Directions</button></div>
+
+<section class="question" data-q="20" data-type="review-fields" data-review="true">
+<div class="qtop"><div class="qnum">20</div><div class="qbody"><p class="prompt">There are several properties of matter that were not discussed in the chapter, including the properties listed below. After reading the description of each property, explain whether you think it is an example of a physical property or a chemical property.</p><button class="read" type="button" data-read="q20">🔊 Read Question</button>
+<div class="inline-fields">
+<div><label for="q20a">a. Bonding — the number of bonds a material can form during a chemical reaction and how strong those bonds are.</label><select id="q20a"><option value="">Choose physical or chemical…</option><option value="physical">Physical</option><option value="chemical">Chemical</option></select><textarea id="q20at" placeholder="Explain your choice."></textarea></div>
+<div><label for="q20b">b. Corrosiveness — a substance’s ability to damage material by eating it away, like rusting metal.</label><select id="q20b"><option value="">Choose physical or chemical…</option><option value="physical">Physical</option><option value="chemical">Chemical</option></select><textarea id="q20bt" placeholder="Explain your choice."></textarea></div>
+<div><label for="q20c">c. Luster — the amount of shine that a material has.</label><select id="q20c"><option value="">Choose physical or chemical…</option><option value="physical">Physical</option><option value="chemical">Chemical</option></select><textarea id="q20ct" placeholder="Explain your choice."></textarea></div>
+</div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="21" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">21</div><div class="qbody"><p class="prompt">If a chemical reaction required energy to occur and then released it, do you think reversing the reaction would release or absorb energy? Explain your answer.</p><button class="read" type="button" data-read="q21">🔊 Read Question</button><textarea id="q21" placeholder="Use iPad Dictation or type your answer."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<div class="section-heading"><h2>Use the chemical equation for questions 22–24</h2>
+<p class="directions">Equation: Fe + H₂O → FeO + H₂</p>
+<button class="read" type="button" data-read="directions-equation">🔊 Read Directions</button></div>
+
+<section class="question" data-q="22" data-type="multi-fields">
+<div class="qtop"><div class="qnum">22</div><div class="qbody"><p class="prompt">How many iron atoms are part of the reactants in this equation? How many are present in the products?</p><button class="read" type="button" data-read="q22">🔊 Read Question</button>
+<div class="inline-fields"><div><label for="q22r">Iron atoms in reactants</label><input id="q22r" type="number" inputmode="numeric" step="1" min="0"></div><div><label for="q22p">Iron atoms in products</label><input id="q22p" type="number" inputmode="numeric" step="1" min="0"></div></div><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="23" data-type="review-fields" data-review="true">
+<div class="qtop"><div class="qnum">23</div><div class="qbody"><p class="prompt">Find the number of hydrogen and oxygen atoms on each side of the equation. Does the equation follow the law of conservation of matter? Why or why not?</p><button class="read" type="button" data-read="q23">🔊 Read Question</button>
+<div class="inline-fields">
+<div><label for="q23hr">Hydrogen atoms in reactants</label><input id="q23hr" type="number" inputmode="numeric" min="0" step="1"></div>
+<div><label for="q23hp">Hydrogen atoms in products</label><input id="q23hp" type="number" inputmode="numeric" min="0" step="1"></div>
+<div><label for="q23or">Oxygen atoms in reactants</label><input id="q23or" type="number" inputmode="numeric" min="0" step="1"></div>
+<div><label for="q23op">Oxygen atoms in products</label><input id="q23op" type="number" inputmode="numeric" min="0" step="1"></div>
+</div><label for="q23why">Explain whether the equation follows the law.</label><textarea id="q23why" placeholder="Use iPad Dictation or type your explanation."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<section class="question" data-q="24" data-type="text" data-review="true">
+<div class="qtop"><div class="qnum">24</div><div class="qbody"><p class="prompt">Imagine that the equation showed two iron atoms forming in the products instead of one. Would this show that the law of conservation of matter is incorrect? If not, is there another way you could write the equation to explain this possibility?</p><button class="read" type="button" data-read="q24">🔊 Read Question</button><textarea id="q24" placeholder="Use iPad Dictation or type your answer."></textarea><div class="feedback" aria-live="polite"></div></div></div></section>
+
+<div class="toolbar">
+<button class="primary" type="button" id="checkBottom">Check My Answers So Far</button>
+<button type="button" id="printBottom">Print / Save Results as PDF</button>
+<button class="warn" type="button" id="clearBottom">Clear Saved Work / Start Over</button>
+</div>
+
+<section class="results" id="teacherResults">
+<h2>Teacher Results</h2>
+<p id="resultSummary">Responses and checking status will appear here.</p>
+<div id="resultContent"></div>
+</section>
+<footer>Your work is saved in this browser on this device. Read Aloud is optional.</footer>
+</main>
+<script>
+(function(){
+"use strict";
+const STORAGE_KEY="science-chapter-3-changes-in-matter-review-v1";
+const $=(s,root=document)=>root.querySelector(s);
+const $$=(s,root=document)=>Array.from(root.querySelectorAll(s));
+const saved=$('#saved');
+let checking=false;
+let drawing=false;
+let ctx;
+const canvas=$('#q19canvas');
+ctx=canvas.getContext('2d');
+ctx.lineWidth=5;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#173b63';
+function getCanvasPoint(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height};}
+canvas.addEventListener('pointerdown',e=>{e.preventDefault();drawing=true;canvas.setPointerCapture(e.pointerId);const p=getCanvasPoint(e);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+0.1,p.y+0.1);ctx.stroke();saveWork();});
+canvas.addEventListener('pointermove',e=>{if(!drawing)return;e.preventDefault();const p=getCanvasPoint(e);ctx.lineTo(p.x,p.y);ctx.stroke();saveWork();});
+function stopDraw(){drawing=false;}canvas.addEventListener('pointerup',stopDraw);canvas.addEventListener('pointercancel',stopDraw);
+function clearDrawing(){ctx.clearRect(0,0,canvas.width,canvas.height);saveWork();}
+$('#eraseDrawing').addEventListener('click',clearDrawing);
+function fieldValue(el){if(el.type==='checkbox')return el.checked;if(el.type==='radio')return el.checked?el.value:null;return el.value;}
+function getWork(){
+ const values={};
+ $$('input,textarea,select').forEach(el=>{if(el.id)values[el.id]=fieldValue(el);else if(el.name&&el.type==='checkbox')values[el.name+':'+el.value]=el.checked;else if(el.name&&el.type==='radio'&&el.checked)values[el.name]=el.value;});
+ values.q19drawing=canvas.toDataURL('image/png');
+ return values;
+}
+function saveWork(){
+ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(getWork()));saved.textContent='Saved ✓';}
+ catch(e){saved.textContent='Save unavailable';}
+}
+function loadWork(){
+ try{
+  const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  $$('input,textarea,select').forEach(el=>{
+   if(el.id&&Object.prototype.hasOwnProperty.call(data,el.id)){
+    if(el.type==='checkbox')el.checked=!!data[el.id];
+    else if(el.type==='radio')el.checked=data[el.id]===el.value;
+    else el.value=data[el.id]??'';
+   } else if(el.name&&el.type==='checkbox'){
+    const k=el.name+':'+el.value;if(Object.prototype.hasOwnProperty.call(data,k))el.checked=!!data[k];
+   } else if(el.name&&el.type==='radio'&&data[el.name]!==undefined)el.checked=data[el.name]===el.value;
+  });
+  if(data.q19drawing){const im=new Image();im.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(im,0,0,canvas.width,canvas.height);};im.src=data.q19drawing;}
+ }catch(e){}
+}
+function hasResponse(q){
+ const els=$$('input,textarea,select',q).filter(e=>e.id||e.name);
+ if(els.some(e=>e.type==='checkbox'&&e.checked))return true;
+ if(els.some(e=>e.type==='radio'&&e.checked))return true;
+ if(els.some(e=>e.type!=='checkbox'&&e.type!=='radio'&&String(e.value).trim()!==''))return true;
+ if(q.dataset.q==='19'){const p=ctx.getImageData(0,0,canvas.width,canvas.height).data;for(let i=3;i<p.length;i+=4)if(p[i]>0)return true;}
+ return false;
+}
+function answer(q){
+ const n=q.dataset.q,t=q.dataset.type;
+ if(t==='text')return $('#q'+n)?.value.trim()||'';
+ if(t==='select')return $('input[name="q'+n+'"]:checked')?.value||'';
+ if(t==='number')return $('#q'+n)?.value.trim()||'';
+ if(n==='2')return ['a','b','c','d','e','f'].map(x=>x+': '+($('#q2'+x).value||'—')).join('; ');
+ if(n==='4'||n==='10')return $$('input[name="q'+n+'"]:checked',q).map(x=>x.value).join('; ');
+ if(n==='19')return {drawing:hasDrawing(),description:$('#q19text').value.trim()};
+ if(n==='20')return ['a','b','c'].map(x=>x+': '+($('#q20'+x).value||'—')+(($('#q20'+x+'t').value.trim())?' — '+$('#q20'+x+'t').value.trim():'' )).join('\n');
+ if(n==='22')return 'Reactants: '+($('#q22r').value||'—')+'; Products: '+($('#q22p').value||'—');
+ if(n==='23')return 'H reactants: '+($('#q23hr').value||'—')+'; H products: '+($('#q23hp').value||'—')+'; O reactants: '+($('#q23or').value||'—')+'; O products: '+($('#q23op').value||'—')+'; Explanation: '+($('#q23why').value.trim()||'—');
+ return '';
+}
+function hasDrawing(){const d=ctx.getImageData(0,0,canvas.width,canvas.height).data;for(let i=3;i<d.length;i+=4)if(d[i]>0)return true;return false;}
+function isAnswered(q){return hasResponse(q);}
+function grade(q){
+ const n=q.dataset.q,t=q.dataset.type;
+ if(t==='text'||q.dataset.review==='true')return 'review';
+ if(n==='2'){
+  const correct={a:'physical',b:'physical',c:'chemical',d:'physical',e:'chemical',f:'physical'};
+  return Object.keys(correct).every(k=>$('#q2'+k).value===correct[k])?'correct':'wrong';
+ }
+ if(t==='select')return $('input[name="q'+n+'"]:checked')?.value===q.dataset.answer?'correct':'wrong';
+ if(n==='4')return $$('input[name="q4"]:checked',q).length===3?'correct':'wrong';
+ if(n==='10'){
+  const expected=['cannot be created','cannot be destroyed','can change form'].sort();
+  const actual=$$('input[name="q10"]:checked',q).map(x=>x.value).sort();
+  return JSON.stringify(actual)===JSON.stringify(expected)?'correct':'wrong';
+ }
+ if(n==='18')return Number($('#q18').value)===12?'correct':'wrong';
+ if(n==='22')return $('#q22r').value==='1'&&$('#q22p').value==='1'?'correct':'wrong';
+ return 'review';
+}
+const labels={correct:'✓ Correct',wrong:'✗ Check this one again',review:'Teacher Review Needed'};
+function speak(text){
+ if(!('speechSynthesis'in window)){alert('Read Aloud is not available in this browser.');return;}
+ window.speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(text);u.rate=0.9;u.pitch=1;window.speechSynthesis.speak(u);
+}
+const readText={
+ 'directions-facts':'Answer questions 1 through 10. For questions with choices, tap or select your response. For questions that ask you to explain, use the text box. Read Aloud is optional.',
+ 'directions-concepts':'Answer questions 11 through 19. Use complete explanations when asked. For question 19, draw a model of the reaction using the drawing area.',
+ 'directions-critical':'Answer questions 20 through 24. Explain your reasoning where the question asks you to do so.',
+ 'directions-equation':'Use the chemical equation for questions 22 through 24: iron plus water yields iron oxide plus hydrogen.'
+};
+$$('[data-read]').forEach(b=>b.addEventListener('click',()=>{
+ const key=b.dataset.read;
+ const qtext=readText[key]||($('.prompt',b.closest('.question'))?.textContent||'');
+ speak(qtext);
+}));
+function showFeedback(q,status){
+ const el=$('.feedback',q);el.className='feedback'+(status==='wrong'?' wrong':status==='review'?' review':'');el.textContent=labels[status]||'';
+}
+function renderResults(){
+ const qs=$$('.question');const buckets={correct:[],wrong:[],review:[],unanswered:[]};
+ qs.forEach(q=>{
+  if(!isAnswered(q)){buckets.unanswered.push(q);return;}
+  const status=grade(q);buckets[status].push(q);showFeedback(q,status);
+ });
+ $('#resultSummary').textContent=`Answered: ${qs.length-buckets.unanswered.length} of ${qs.length} · Correct: ${buckets.correct.length} · Check again: ${buckets.wrong.length} · Teacher review: ${buckets.review.length} · Unanswered: ${buckets.unanswered.length}`;
+ const content=$('#resultContent');content.innerHTML='';
+ const titles={correct:'Questions answered correctly',wrong:'Questions that need another look',review:'Open-ended responses for teacher review',unanswered:'Unanswered questions'};
+ ['correct','wrong','review','unanswered'].forEach(k=>{
+  const h=document.createElement('h3');h.textContent=titles[k];content.appendChild(h);
+  const ol=document.createElement('ol');ol.className='result-list';
+  if(!buckets[k].length){const li=document.createElement('li');li.className='result-item';li.textContent='None';ol.appendChild(li);}
+  buckets[k].forEach(q=>{
+   const li=document.createElement('li');li.className='result-item';
+   const prompt=$('.prompt',q)?.textContent||'';
+   const strong=document.createElement('strong');strong.textContent=`${q.dataset.q}. ${prompt} `;li.appendChild(strong);
+   const resp=document.createElement('div');resp.className='result-response';resp.textContent=displayAnswer(q);li.appendChild(resp);
+   if(q.dataset.q==='19'&&hasDrawing()){const im=document.createElement('img');im.src=canvas.toDataURL('image/png');im.alt='Student drawing for question 19';im.style.cssText='max-width:100%;max-height:180px;border:1px solid #aaa;margin-top:5px';li.appendChild(im);}
+   ol.appendChild(li);
+  });
+  content.appendChild(ol);
+ });
+}
+function displayAnswer(q){
+ const n=q.dataset.q;
+ if(n==='19'){const desc=$('#q19text').value.trim();return (hasDrawing()?'Drawing provided. ':'')+(desc?'Description: '+desc:'')||'No response';}
+ const a=answer(q);return typeof a==='string'?(a||'No response'):JSON.stringify(a);
+}
+function check(){renderResults();$('#teacherResults').scrollIntoView({behavior:'smooth',block:'start'});}
+function printResults(){renderResults();window.print();}
+function clearWork(){
+ if(!confirm('Clear all saved answers and drawings and start over? This cannot be undone.'))return;
+ localStorage.removeItem(STORAGE_KEY);
+ $$('input,textarea,select').forEach(el=>{if(el.type==='checkbox'||el.type==='radio')el.checked=false;else el.value='';});
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ $$('.feedback').forEach(el=>{el.textContent='';el.className='feedback';});
+ $('#resultSummary').textContent='Responses and checking status will appear here.';$('#resultContent').innerHTML='';
+ saved.textContent='Saved ✓';
+}
+$$('input,textarea,select').forEach(el=>el.addEventListener('input',saveWork));
+$$('input[type=radio],input[type=checkbox],select').forEach(el=>el.addEventListener('change',saveWork));
+['checkTop','checkBottom'].forEach(id=>$('#'+id).addEventListener('click',check));
+['printTop','printBottom'].forEach(id=>$('#'+id).addEventListener('click',printResults));
+['clearTop','clearBottom'].forEach(id=>$('#'+id).addEventListener('click',clearWork));
+loadWork();
+})();
+</script>
+</body>
+</html>
