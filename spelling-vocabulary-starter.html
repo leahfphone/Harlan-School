@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Starter Spelling &amp; Vocabulary Practice | Harlan's Learning Hub</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#182638;font:19px/1.75 Arial,sans-serif}main{max-width:850px;margin:auto;padding:22px}section{background:white;border:2px solid #d5e1ed;border-radius:15px;padding:22px;margin:18px 0}h1{font-size:2rem;line-height:1.3}h2{line-height:1.4}button,.nav{font:inherit;min-height:46px;border-radius:10px;padding:10px 16px;margin:6px 6px 6px 0;cursor:pointer}button{background:#1f5d92;color:white;border:2px solid #1f5d92}.nav{display:inline-block;background:white;border:2px solid #bacbdc;color:#163a61}input,select{display:block;font:inherit;padding:10px;width:100%;border:2px solid #71849a;border-radius:8px;margin:8px 0}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #9b4900;outline-offset:3px}#word{font-size:1.8rem;font-weight:bold}#feedback{font-weight:bold;min-height:3.5em}summary{cursor:pointer}label{font-weight:bold}.muted{color:#46596e}@media(max-width:650px){main{padding:14px}section{padding:16px}h1{font-size:1.65rem}}@media print{button,.nav,select{display:none}body{background:white}section{break-inside:avoid}}</style></head>
+<body><main><nav aria-label="Back navigation"><a class="nav" href="spelling-vocabulary.html">← Spelling &amp; Vocabulary</a><a class="nav" href="language.html">Language</a><a class="nav" href="index.html">Learning Hub</a></nav>
+<h1>Starter Spelling &amp; Vocabulary Practice</h1>
+<p>This is a starter set, not an assigned spelling list. Practice five words at your own pace. There is no timer or grade.</p>
+<section aria-labelledby="how"><h2 id="how">How to practice</h2><p id="directions">First, study a word and its meaning. Then hide the word, listen, and try spelling it. Choose its meaning and check your answers. You can try again as often as you need.</p><button id="readDirections">Read directions aloud</button><button id="stop">Stop reading</button><p id="speechStatus" role="status" class="muted">Use Listen to hear a word. If audio is unavailable, use the study word and example on screen.</p></section>
+<section aria-labelledby="practice"><h2 id="practice">Practice one word</h2><label for="choose">Choose a practice word</label><select id="choose"></select>
+<p id="progress"></p><div id="study"><p id="word"></p><p id="definition"></p><p id="example"></p></div>
+<button id="readStudy">Read word and meaning aloud</button><button id="hide">Hide study word</button>
+<form id="exercise"><h3>1. Spell the word</h3><button type="button" id="listen">Listen to the word</button><label for="answer">Type the word</label><input id="answer" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
+<h3>2. Choose its meaning</h3><p id="meaningPrompt"></p><button type="button" id="readChoices">Read meaning choices aloud</button><label for="meaning">Meaning</label><select id="meaning"></select><button type="submit">Check answers</button></form>
+<p id="feedback" role="status" aria-live="polite"></p><button id="readFeedback">Read feedback aloud</button><button id="next">Next word</button>
+<details><summary>Need a spelling hint?</summary><p id="hint"></p></details>
+<p class="muted">Answers stay on this page only and clear when you leave or reload. A capital letter or extra space at the ends will not count against you.</p></section>
+<noscript><p>Interactive practice needs JavaScript. You can still practice these words on paper.</p></noscript>
+<section><h2>Starter word list</h2><p>Use this list for study or paper practice.</p><ul id="wordList"><li>observe — to watch carefully. Observe the bird as it builds a nest.</li><li>compare — to look for ways things are alike or different. Compare the two maps.</li><li>predict — to say what you think will happen. Predict how the story will end.</li><li>evidence — facts or details that support an idea. Footprints are evidence that someone walked here.</li><li>journey — a trip from one place to another. Our journey took us across the mountains.</li></ul><button id="readList">Read word list aloud</button></section></main>
+<script>
+'use strict';
+const words=[
+{word:'observe',meaning:'to watch carefully',example:'Observe the bird as it builds a nest.',hint:'Look for the parts: ob • serve.'},
+{word:'compare',meaning:'to look for ways things are alike or different',example:'Compare the two maps.',hint:'Look for the parts: com • pare.'},
+{word:'predict',meaning:'to say what you think will happen',example:'Predict how the story will end.',hint:'Look for the parts: pre • dict.'},
+{word:'evidence',meaning:'facts or details that support an idea',example:'Footprints are evidence that someone walked here.',hint:'Look for the parts: ev • i • dence.'},
+{word:'journey',meaning:'a trip from one place to another',example:'Our journey took us across the mountains.',hint:'Look for the parts: jour • ney. It ends in e-y.'}
+];
+const $=id=>document.getElementById(id);let current=0;
+function stop(){if('speechSynthesis' in window)window.speechSynthesis.cancel();}
+function speak(text){stop();if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){$('speechStatus').textContent='Audio is unavailable in this browser. Use the study word, meaning, and example on screen.';return;}const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=.83;u.onerror=()=>{$('speechStatus').textContent='Audio could not play. Use the study text or try Listen again.';};window.speechSynthesis.speak(u);}
+words.forEach((w,i)=>$('choose').add(new Option((i+1)+'. '+w.word,String(i))));
+function show(){stop();const w=words[current];$('choose').value=String(current);$('progress').textContent='Word '+(current+1)+' of '+words.length;$('word').textContent=w.word;$('definition').textContent='Meaning: '+w.meaning+'.';$('example').textContent='Example: '+w.example;$('hint').textContent=w.hint;$('study').hidden=false;$('hide').textContent='Hide study word';$('hide').setAttribute('aria-expanded','true');$('hide').setAttribute('aria-controls','study');$('answer').value='';$('feedback').textContent='';$('meaningPrompt').textContent='Which meaning matches this word?';$('meaning').replaceChildren(new Option('Choose a meaning',''));for(let j=0;j<words.length;j++){const i=(j+current+2)%words.length;$('meaning').add(new Option(words[i].meaning,String(i)));}document.querySelector('details').open=false;}
+$('choose').onchange=()=>{current=Number($('choose').value);show();};
+$('hide').onclick=()=>{const hidden=!$('study').hidden;$('study').hidden=hidden;$('hide').textContent=hidden?'Show study word':'Hide study word';$('hide').setAttribute('aria-expanded',String(!hidden));};
+$('readDirections').onclick=()=>speak($('directions').textContent);
+$('stop').onclick=stop;
+$('listen').onclick=()=>speak(words[current].word+'. '+words[current].example);
+$('readStudy').onclick=()=>{const w=words[current];speak(w.word+'. '+w.meaning+'. '+w.example);};
+$('readChoices').onclick=()=>speak('Choose the meaning. '+Array.from($('meaning').options).slice(1).map(o=>o.textContent).join('. '));
+$('readList').onclick=()=>speak($('wordList').textContent);
+$('exercise').onsubmit=e=>{e.preventDefault();const value=$('answer').value.trim().toLowerCase(),meaning=$('meaning').value;if(!value||meaning===''){$('feedback').textContent='Type a spelling and choose a meaning before checking. You can listen again or show the study word.';return;}const spelling=value===words[current].word,correct=Number(meaning)===current;$('feedback').textContent=(spelling?'Spelling is correct. ':'Try the spelling again. Listen or show the study word for help. ')+(correct?'Meaning is correct.':'Try the meaning again. Read or listen to the study meaning for help.');};
+$('readFeedback').onclick=()=>speak($('feedback').textContent||'Check your answers to get feedback.');
+$('next').onclick=()=>{current=(current+1)%words.length;show();$('practice').setAttribute('tabindex','-1');$('practice').focus();};
+window.addEventListener('pagehide',stop);show();
+</script></body></html>
