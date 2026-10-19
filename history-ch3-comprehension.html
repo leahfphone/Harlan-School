@@ -73,4 +73,25 @@ input:focus,textarea:focus,select:focus,summary:focus{outline:3px solid rgba(40,
   fields.forEach(el=>{el.addEventListener('change',save);el.addEventListener('input',save)});
 })();
 </script>
+<style>.hub-access{margin:16px;padding:14px;background:#fff;border:2px solid #65788a;border-radius:12px;color:#17202a;font:18px/1.6 Arial,sans-serif}.hub-access a,.hub-access button,.hub-read{display:inline-block;margin:5px;padding:10px 14px;min-height:44px;border:2px solid #65788a;border-radius:8px;background:#fff;color:#17202a;font:inherit}.hub-read{font:16px Arial,sans-serif}.hub-access :focus-visible,.hub-read:focus-visible{outline:3px solid #005fcc;outline-offset:3px}@media print{.hub-access,.hub-read{display:none}}</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+ const box=document.createElement('aside');box.className='hub-access';box.setAttribute('aria-label','Reading support');
+ box.innerHTML='<button type="button" id="hub-stop">Stop reading</button><label>Reading speed <select id="hub-speed"><option value="0.75">Slow</option><option value="0.9" selected>Comfortable</option><option value="1">Normal</option></select></label><p id="hub-speech-status" role="status">Tap Read question beside a question to listen.</p>';
+ (document.querySelector('main')||document.body).prepend(box);
+ const supported='speechSynthesis' in window;
+ const status=box.querySelector('#hub-speech-status');
+ function speak(text){if(!supported)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=Number(box.querySelector('#hub-speed').value);u.onerror=function(){status.textContent='Reading could not start. Try tapping Read again, or use your device’s spoken content.'};window.speechSynthesis.speak(u);}
+ box.querySelector('#hub-stop').onclick=function(){if(supported)window.speechSynthesis.cancel();};
+ if(!supported)status.textContent='Read aloud is unavailable in this browser. Use your device’s spoken content.';
+ document.querySelectorAll('.question,.q').forEach(function(q,i){
+ const prompt=q.querySelector('.qtext,.prompt,label');if(!prompt)return;
+ const b=document.createElement('button');b.type='button';b.className='hub-read';b.textContent='Read question';b.setAttribute('aria-label','Read question '+(i+1));b.disabled=!supported;
+ b.onclick=function(){const copy=q.cloneNode(true);copy.querySelectorAll('button,input,textarea,.feedback,.fb,datalist').forEach(function(e){e.remove();});copy.querySelectorAll('select').forEach(function(s){s.querySelectorAll('option').forEach(function(o){if(/choose|select/i.test(o.textContent))o.remove();});});speak(copy.textContent.replace(/\s+/g,' ').trim());};
+ prompt.insertAdjacentElement('afterend',b);
+ });
+ document.querySelectorAll('h2,h3,summary,.instructions').forEach(function(el){const b=document.createElement('button');b.type='button';b.className='hub-read';b.textContent='Read directions';b.disabled=!supported;b.onclick=function(e){e.preventDefault();e.stopPropagation();speak(el.textContent.replace('Read directions',''));};el.insertAdjacentElement('afterend',b);});
+ window.addEventListener('pagehide',function(){if(supported)window.speechSynthesis.cancel();});
+});
+</script>
 </body></html>
