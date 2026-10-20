@@ -4,7 +4,7 @@
 main{max-width:900px;margin:auto;padding:22px}a{text-decoration:none;color:#17202a}
 .back{display:inline-block;background:white;border:2px solid #b9c3cf;border-radius:10px;padding:11px 14px;font-weight:bold;margin-bottom:14px}
 h1{font-size:32px;margin-bottom:8px}.subtitle{font-size:18px;color:#536170}
-.activity{display:block;background:white;border:3px solid #cbd4df;border-radius:16px;padding:20px;margin:15px 0}
+.activity[hidden]{display:none!important}.activity{display:block;background:white;border:3px solid #cbd4df;border-radius:16px;padding:20px;margin:15px 0}
 .activity strong{font-size:21px}.activity span{display:block;margin-top:7px;color:#536170;font-size:16px;line-height:1.45}
 .unit{background:white;border:3px solid #cbd4df;border-radius:18px;padding:22px;margin-top:18px}
 .number{display:inline-flex;width:34px;height:34px;border-radius:50%;border:2px solid #7b8998;align-items:center;justify-content:center;margin-right:9px}
@@ -20,5 +20,5 @@ h1{font-size:32px;margin-bottom:8px}.subtitle{font-size:18px;color:#536170}
 <span>Comprehension Checks 3A–3I, Chapter 3 Checkup, and Study Guide / Final Review.</span>
 </a>
 <a class="activity" href="harlan-canada-chapter-3-review-maps.html"><strong>Chapter 3: Canada — Test Review &amp; Blank Maps</strong><span>Review test material and practice labeling Canada's provinces, capitals, and geographical features. Includes read-aloud support.</span></a><a class="activity" href="canada-test-2-submit.html"><strong>Chapter 3: Canada — Test 2</strong><span>Accessible test with read-aloud questions, locked submission, and private delivery of each question and answer to the Teacher Dashboard.</span></a>
-<a class="activity" href="harlan-history-memorization.html"><strong>Documents We Memorize</strong><span>Declaration of Independence and the American's Creed, with read-aloud and practice activities.</span></a>
-</main></body></html>
+<a id="releasedTest1" class="activity" href="history-test-1-release.html" hidden><strong>Chapters 1–2 — Test 1</strong><span>Teacher-released History &amp; Geography test with read-aloud and original textbook maps.</span></a><a class="activity" href="harlan-history-memorization.html"><strong>Documents We Memorize</strong><span>Declaration of Independence and the American's Creed, with read-aloud and practice activities.</span></a>
+</main><script type="module">import{initializeApp}from'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';import{getAuth,signInAnonymously}from'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';import{getFirestore,doc,getDoc}from'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';try{const app=initializeApp({apiKey:'AIzaSyCyp8bBl38v5Gb8xVsQrfmdnEXisarqBQQ',authDomain:'harlan-learning-hub.firebaseapp.com',projectId:'harlan-learning-hub',appId:'1:341058218983:web:cb24701e93a511fd336b42'});const auth=getAuth(app);if(!auth.currentUser)await signInAnonymously(auth);const snap=await getDoc(doc(getFirestore(app),'assessmentReleases','history-test-1'));if(snap.exists()&&snap.data().released===true)document.getElementById('releasedTest1').hidden=false}catch(e){console.warn('Assessments unavailable',e.code)}</script></body></html>
