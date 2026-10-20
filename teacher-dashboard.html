@@ -2,7 +2,7 @@
 // Teacher dashboard setup: replace this null with your Firebase web app configuration
 // only after enabling Email/Password Authentication, creating the teacher account,
 // deploying the firestore.rules file, and enabling Firestore.
-const firebaseConfig=null;
+const firebaseConfig={"apiKey":"AIzaSyCyp8bBl38v5Gb8xVsQrfmdnEXisarqBQQ","authDomain":"harlan-learning-hub.firebaseapp.com","projectId":"harlan-learning-hub","storageBucket":"harlan-learning-hub.firebasestorage.app","messagingSenderId":"341058218983","appId":"1:341058218983:web:cb24701e93a511fd336b42"};
 const TEACHER_EMAIL='lphone@jcatoday.org';
 if(firebaseConfig){
  const [{initializeApp},{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged},{getFirestore,collection,query,orderBy,getDocs}]=await Promise.all([
