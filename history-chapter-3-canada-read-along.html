@@ -288,4 +288,70 @@ h2{font-size:26px;margin:3px 0 0} h3{font-size:21px;margin:22px 0 8px}
   window.addEventListener('beforeunload', () => synth.cancel());
 })();
 </script>
-<script id="chapter-search-script">(function(){const input=document.getElementById('chapterSearchInput'),status=document.getElementById('chapterSearchStatus');const root=document.querySelector('main');if(!input||!root)return;let hits=[],index=0;const selector='.chapter-section .readable, .chapter-section h2, .chapter-section h3';const originals=new Map();function reset(){for(const [el,html] of originals)el.innerHTML=html;originals.clear();hits=[];index=0;}function focusHit(){if(!hits.length)return;hits.forEach(el=>el.classList.remove('search-current'));const el=hits[index];el.classList.add('search-current');el.scrollIntoView({behavior:'smooth',block:'center'});status.textContent='Match '+(index+1)+' of '+hits.length+'.';}function search(){reset();const query=input.value.trim();if(!query){status.textContent='Type a name, place, event, or topic to search.';return;}const needle=query.toLocaleLowerCase();document.querySelectorAll(selector).forEach(el=>{const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);for(const node of nodes){const str=node.nodeValue;let start=0,pos;const parts=[];while((pos=str.toLocaleLowerCase().indexOf(needle,start))!==-1){parts.push([pos,pos+query.length]);start=pos+query.length;}if(!parts.length)continue;if(!originals.has(el))originals.set(el,el.innerHTML);const frag=document.createDocumentFragment();let cursor=0;for(const [a,b] of parts){frag.appendChild(document.createTextNode(str.slice(cursor,a)));const mark=document.createElement('mark');mark.className='search-hit';mark.textContent=str.slice(a,b);frag.appendChild(mark);hits.push(mark);cursor=b;}frag.appendChild(document.createTextNode(str.slice(cursor)));node.replaceWith(frag);}});if(!hits.length){status.textContent='No matches found. Try another spelling or a shorter word.';return;}focusHit();}document.getElementById('chapterSearchButton').addEventListener('click',search);input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search();}});document.getElementById('chapterSearchNext').addEventListener('click',()=>{if(!hits.length){search();return;}index=(index+1)%hits.length;focusHit();});document.getElementById('chapterSearchPrev').addEventListener('click',()=>{if(!hits.length){search();return;}index=(index-1+hits.length)%hits.length;focusHit();});document.getElementById('chapterSearchClear').addEventListener('click',()=>{reset();input.value='';status.textContent='Search cleared.';input.focus();});})();</script></body></html>
+<script id="chapter-search-script">
+(function(){
+ const input=document.getElementById('chapterSearchInput'),status=document.getElementById('chapterSearchStatus');
+ if(!input||!status)return;
+ const selector='.chapter-section .sentence, .chapter-section h2, .chapter-section h3';
+ let hits=[],index=0;
+ function clearHighlights(){
+  document.querySelectorAll('.search-hit,.search-current').forEach(el=>el.classList.remove('search-hit','search-current'));
+  hits=[];index=0;
+ }
+ function normalize(s){return s.toLocaleLowerCase().replace(/\s+/g,' ').trim();}
+ function focusHit(){
+  if(!hits.length)return;
+  hits.forEach(h=>h.elements.forEach(e=>e.classList.remove('search-current')));
+  const hit=hits[index];
+  hit.elements.forEach(e=>e.classList.add('search-current'));
+  hit.elements[0].scrollIntoView({behavior:'smooth',block:'center'});
+  status.textContent='Match '+(index+1)+' of '+hits.length+'.';
+ }
+ function search(){
+  clearHighlights();
+  const needle=normalize(input.value);
+  if(!needle){status.textContent='Type any word or phrase to search the chapter.';return;}
+  document.querySelectorAll(selector).forEach(el=>{
+   const nodes=[...el.querySelectorAll('.word')];
+   if(!nodes.length){
+    const text=normalize(el.textContent);
+    let from=0,at;
+    while((at=text.indexOf(needle,from))!==-1){
+     hits.push({elements:[el]});from=at+Math.max(1,needle.length);
+    }
+    if(text.includes(needle))el.classList.add('search-hit');
+    return;
+   }
+   const text=el.textContent;
+   const normalized=normalize(text);
+   // Sentence text uses one text node per word; search the complete sentence.
+   let from=0,at;
+   while((at=normalized.indexOf(needle,from))!==-1){
+    const end=at+needle.length;
+    let cursor=0;
+    const matching=[];
+    for(const word of nodes){
+     const wordText=word.textContent;
+     const start=normalized.indexOf(wordText.toLocaleLowerCase(),cursor);
+     if(start<0)continue;
+     const finish=start+wordText.length;
+     if(finish>at&&start<end)matching.push(word);
+     cursor=finish;
+    }
+    if(matching.length){
+     matching.forEach(w=>w.classList.add('search-hit'));
+     hits.push({elements:matching});
+    }
+    from=end;
+   }
+  });
+  if(!hits.length){status.textContent='No matches found in the chapter. Try another spelling or a shorter word.';return;}
+  focusHit();
+ }
+ document.getElementById('chapterSearchButton').addEventListener('click',search);
+ input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search();}});
+ document.getElementById('chapterSearchNext').addEventListener('click',()=>{if(!hits.length){search();return;}index=(index+1)%hits.length;focusHit();});
+ document.getElementById('chapterSearchPrev').addEventListener('click',()=>{if(!hits.length){search();return;}index=(index-1+hits.length)%hits.length;focusHit();});
+ document.getElementById('chapterSearchClear').addEventListener('click',()=>{clearHighlights();input.value='';status.textContent='Search cleared.';input.focus();});
+})();
+</script></body></html>
