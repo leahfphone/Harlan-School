@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  match /submissions/{submissionId} {
+   // Only the verified teacher can read, update, or delete submissions.
+   allow read, update, delete: if request.auth != null && request.auth.token.email_verified == true && request.auth.token.email == 'lphone@jcatoday.org';
+   // Student submissions must go through a trusted backend (Cloud Function),
+   // NOT directly from public GitHub Pages or unauthenticated browsers.
+   allow create: if false;
+  }
+ }
+}
