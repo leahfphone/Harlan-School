@@ -5,7 +5,7 @@
 const firebaseConfig={"apiKey":"AIzaSyCyp8bBl38v5Gb8xVsQrfmdnEXisarqBQQ","authDomain":"harlan-learning-hub.firebaseapp.com","projectId":"harlan-learning-hub","storageBucket":"harlan-learning-hub.firebasestorage.app","messagingSenderId":"341058218983","appId":"1:341058218983:web:cb24701e93a511fd336b42"};
 const TEACHER_EMAIL='lphone@jcatoday.org';
 if(firebaseConfig){
- const [{initializeApp},{getAuth,signInWithEmailAndPassword,signOut,sendEmailVerification,onAuthStateChanged},{getFirestore,collection,query,orderBy,getDocs,doc,getDoc,setDoc}]=await Promise.all([
+ const [{initializeApp},{getAuth,signInWithEmailAndPassword,signOut,sendEmailVerification,onAuthStateChanged},{getFirestore,collection,query,orderBy,getDocs,doc,getDoc,setDoc,serverTimestamp}]=await Promise.all([
  import('https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js'),
  import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js'),
  import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js')]);
