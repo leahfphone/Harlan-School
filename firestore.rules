@@ -1,12 +1,51 @@
 rules_version = '2';
 service cloud.firestore {
- match /databases/{database}/documents {
-  match /submissions/{submissionId} {
-   // Only the verified teacher can read, update, or delete submissions.
-   allow read, update, delete: if request.auth != null && request.auth.token.email_verified == true && request.auth.token.email == 'lphone@jcatoday.org';
-   // Student submissions must go through a trusted backend (Cloud Function),
-   // NOT directly from public GitHub Pages or unauthenticated browsers.
-   allow create: if false;
+  match /databases/{database}/documents {
+    function isTeacher() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'lphone@jcatoday.org';
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if isTeacher();
+      allow create: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && (submissionId == request.auth.uid
+            || submissionId == 'test1_' + request.auth.uid)
+        && request.resource.data.keys().hasOnly([
+          'student', 'studentUid', 'testTitle', 'submittedAt', 'responses'
+        ])
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.student is string
+        && request.resource.data.student.size() <= 100
+        && request.resource.data.responses is list
+        && request.resource.data.submittedAt == request.time
+        && (
+          (submissionId == request.auth.uid
+            && request.resource.data.testTitle == 'Canada — Test 2'
+            && request.resource.data.responses.size() == 73)
+          ||
+          (submissionId == 'test1_' + request.auth.uid
+            && request.resource.data.testTitle == 'History & Geography — Test 1'
+            && request.resource.data.responses.size() == 61
+            && exists(/databases/$(database)/documents/assessmentReleases/history-test-1)
+            && get(/databases/$(database)/documents/assessmentReleases/history-test-1).data.released == true)
+        );
+      allow update, delete: if false;
+    }
+
+    match /assessmentReleases/{assessmentId} {
+      allow read: if isTeacher() || request.auth != null;
+      allow create, update, delete: if isTeacher();
+    }
+
+    match /protectedAssessments/{assessmentId} {
+      allow read: if isTeacher() ||
+        (request.auth != null
+         && exists(/databases/$(database)/documents/assessmentReleases/$(assessmentId))
+         && get(/databases/$(database)/documents/assessmentReleases/$(assessmentId)).data.released == true);
+      allow create, update, delete: if isTeacher();
+    }
   }
- }
 }
