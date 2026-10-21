@@ -8,6 +8,20 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
+      // Chapter 4 student practice: one submission per lesson and anonymous student.
+      allow create: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && submissionId.matches('math4_(31|32|33|34|35|36|37|38|review|cumulative)_[A-Za-z0-9]+')
+        && submissionId.endsWith('_' + request.auth.uid)
+        && request.resource.data.keys().hasOnly(['student','studentUid','testTitle','submittedAt','responses'])
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.student == 'Harlan'
+        && request.resource.data.testTitle is string
+        && request.resource.data.testTitle.matches('Math 6 Chapter 4 — .*')
+        && request.resource.data.responses is list
+        && request.resource.data.responses.size() == 3
+        && request.resource.data.submittedAt == request.time;
+
       allow read: if isTeacher();
       allow create: if request.auth != null
         && request.auth.token.firebase.sign_in_provider == 'anonymous'
