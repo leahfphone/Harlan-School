@@ -99,7 +99,21 @@ service cloud.firestore {
         && request.resource.data.status == 'submitted'
         && request.resource.data.currentAttempt == 1
         && request.resource.data.updatedAt == request.time;
-      allow update: if teacher();
+      allow update: if teacher() || (
+        signedIn()
+        && student(request.auth.uid)
+        && resource.data.studentUid == request.auth.uid
+        && resource.data.status == 'returned'
+        && request.resource.data.keys().hasOnly([
+          'studentUid','assignmentId','status','currentAttempt','updatedAt'
+        ])
+        && request.resource.data.studentUid == resource.data.studentUid
+        && request.resource.data.assignmentId == resource.data.assignmentId
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.currentAttempt == resource.data.currentAttempt + 1
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.currentAttempt)))
+      );
       allow delete: if false;
 
       match /attempts/{attemptId} {
