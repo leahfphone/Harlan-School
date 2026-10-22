@@ -32,7 +32,7 @@ const extensions=new Set(['.html','.js','.css','.png','.jpg','.jpeg','.svg','.we
 const paths=tracked.filter(path=>!path.includes('/')&&extensions.has(extname(path))).sort();
 for(const path of paths)if((await lstat(join(root,path))).isSymbolicLink())throw new Error('Frontend symlinks require explicit review: '+path);
 const assignments=[];
-for(const chapter of [4,5]){
+for(const chapter of [5]){
  const html=await readFile(join(root,'math-chapter-'+chapter+'-activity.html'),'utf8');
  const match=html.match(/const lessons=(\[.*?\]);const id=/s);
  if(!match)throw new Error('Cannot extract chapter '+chapter+' lesson metadata without evaluating code.');
@@ -49,7 +49,7 @@ if(textbookSource){
  if(!match)throw new Error('Cannot read verified textbook metadata without evaluating code.');
  for(const lesson of Object.values(JSON.parse(match[1]))){
   if(lesson.verified!==true)continue;
-  assignments.push({path:'assignments/'+lesson.assignmentId,data:{title:'Lesson '+lesson.lesson+' — '+lesson.title+' (textbook)',subject:'Math',chapter:String(lesson.chapter),lesson:lesson.lesson,type:'classwork',published:false}});
+  assignments.push({path:'assignments/'+lesson.assignmentId,data:{title:(/^\d+$/.test(lesson.lesson)?'Lesson '+lesson.lesson+' — ':'')+lesson.title+' (textbook)',subject:'Math',chapter:String(lesson.chapter),lesson:lesson.lesson,type:'classwork',published:false}});
  }
 }
 await mkdir(out);await mkdir(join(out,'site'));
