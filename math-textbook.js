@@ -38,6 +38,20 @@ function diagram(d){
   text(180,23,d.title);let angle=d.start||-90;for(const item of d.items){const a=angle*Math.PI/180,b=(angle+item.value*3.6)*Math.PI/180;svg.append(svgEl('path',{d:`M 180 135 L ${180+92*Math.cos(a)} ${135+92*Math.sin(a)} A 92 92 0 ${item.value>50?1:0} 1 ${180+92*Math.cos(b)} ${135+92*Math.sin(b)} Z`,fill:item.color,stroke:'#17212b','stroke-width':2}));angle+=item.value*3.6;}d.items.forEach((item,i)=>{svg.append(svgEl('rect',{x:325,y:55+i*43,width:20,height:20,fill:item.color,stroke:'#17212b'}));svg.append(svgEl('text',{x:355,y:72+i*43},item.label+': '+item.value+'%'));});
  }else if(d.type==='clock'){
   svg.append(svgEl('circle',{cx:325,cy:130,r:105,fill:'white',stroke:'#17212b','stroke-width':3}),svgEl('circle',{cx:325,cy:130,r:4,fill:'#17212b'}));for(let n=1;n<=12;n++){const a=(n*30-90)*Math.PI/180;text(325+88*Math.cos(a),137+88*Math.sin(a),String(n));}
+ }else if(d.type==='markedLine'){
+  const steps=(d.max-d.min)*d.partsPerWhole;line(45,115,605,115);for(let i=0;i<=steps;i++){const x=55+i*540/steps;line(x,107,x,123);if(i%d.partsPerWhole===0)text(x,154,d.min+i/d.partsPerWhole);}svg.append(svgEl('circle',{cx:55+d.point*540/steps,cy:115,r:5,fill:'#007caf'}));
+ }else if(d.type==='magicSquare'){
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++)svg.append(svgEl('rect',{x:220+c*70,y:25+r*70,width:70,height:70,fill:'#e1f1fa',stroke:'#17212b','stroke-width':2}));text(325,137,d.center);
+ }else if(d.type==='trianglePuzzle'){
+  line(325,30,180,220);line(180,220,470,220);line(470,220,325,30);for(const [x,y]of [[325,30],[252.5,125],[397.5,125],[180,220],[325,220],[470,220]])svg.append(svgEl('circle',{cx:x,cy:y,r:24,fill:'white',stroke:'#17212b','stroke-width':2}));
+ }else if(d.type==='train'){
+  svg.setAttribute('viewBox','0 0 650 390');d.cars.forEach((car,i)=>{const x=25+(i%3)*210,y=30+Math.floor(i/3)*190;svg.append(svgEl('rect',{x,y,width:175,height:65,rx:i===3?20:3,fill:['#b34b4b','#efe4cb','#37804a','#666','#1675a4','#888'][i],stroke:'#17212b','stroke-width':2}));for(const cx of[x+28,x+147])svg.append(svgEl('circle',{cx,cy:y+73,r:12,fill:'#333'}));text(x+87,y+115,car.label);text(x+87,y+145,car.length);});
+ }else if(d.type==='modelChoices'){
+  svg.setAttribute('viewBox','0 0 650 320');d.models.forEach((parts,i)=>{const x=65+(i%2)*315,y=25+Math.floor(i/2)*160,w=240;svg.append(svgEl('rect',{x,y,width:w,height:45,fill:'#d9edf8',stroke:'#17212b','stroke-width':2}));text(x-23,y+31,String.fromCharCode(65+i)+'.');text(x+w/2,y+30,d.whole);let offset=0;const sum=parts.reduce((n,p)=>n+p,0);parts.forEach(p=>{const width=w*p/sum;svg.append(svgEl('rect',{x:x+offset,y:y+45,width,height:45,fill:'white',stroke:'#17212b','stroke-width':2}));text(x+offset+width/2,y+75,p);offset+=width;});});
+ }else if(d.type==='barGraph'){
+  svg.setAttribute('viewBox','0 0 650 360');text(340,23,d.title);const y=v=>280-(v-44)*230/56;for(const tick of d.ticks){line(70,y(tick),620,y(tick));text(43,y(tick)+6,tick);}line(70,40,70,305);line(70,305,620,305);text(43,310,'0');svg.append(svgEl('path',{d:'M 63 294 l 14 -5 l -14 -5',fill:'none',stroke:'#17212b','stroke-width':2}));d.items.forEach((item,i)=>{const x=98+i*103;svg.append(svgEl('rect',{x,y:y(item.value),width:35,height:280-y(item.value),fill:'#1675a4'}));text(x+17,326,item.label);});text(340,355,d.xLabel);svg.append(svgEl('text',{x:17,y:180,transform:'rotate(-90 17 180)','text-anchor':'middle'},d.yLabel));
+ }else if(d.type==='horizontalBars'){
+  svg.setAttribute('viewBox','0 0 800 390');text(475,24,d.title);const x=v=>270+v*500/d.max;for(const tick of d.ticks){line(x(tick),45,x(tick),325);svg.append(svgEl('text',{x:x(tick),y:350,'text-anchor':'middle',style:'font-size:14px'},tick.toLocaleString('en-US')));}line(270,45,270,325);line(270,325,770,325);d.items.forEach((item,i)=>{const y=65+i*52;svg.append(svgEl('text',{x:255,y:y+19,'text-anchor':'end',style:'font-size:17px'},item.label));svg.append(svgEl('rect',{x:270,y,width:x(item.value)-270,height:24,fill:'#1675a4'}));});text(510,382,d.xLabel);svg.append(svgEl('text',{x:20,y:180,transform:'rotate(-90 20 180)','text-anchor':'middle'},d.yLabel));
  }else if(d.type==='barModel'){
   svg.append(svgEl('rect',{x:85,y:60,width:480,height:60,fill:'#d9edf8',stroke:'#17212b','stroke-width':2}));text(325,98,d.whole);d.parts.forEach((part,i)=>{const w=480/d.parts.length;svg.append(svgEl('rect',{x:85+i*w,y:120,width:w,height:60,fill:'white',stroke:'#17212b','stroke-width':2}));text(85+(i+.5)*w,158,part);});
  }else if(d.type==='grid'){
@@ -59,7 +73,14 @@ function diagram(d){
  return svg;
 }
 function diagramDescription(d){
- if(!d)return '';if(d.type==='barModel')return `Bar model: whole ${d.whole}; equal parts labeled ${d.parts.join(', ')}.`;if(d.type==='grid')return `Rectangle with ${d.rows} row(s) and ${d.cols} columns; ${d.shaded.length} cells colored.`;
+ if(!d)return '';
+ if(d.type==='markedLine')return `Number line from ${d.min} to ${d.max}, each whole divided into ${d.partsPerWhole} equal intervals. A point is marked ${d.point} intervals after ${d.min}.`;
+ if(d.type==='magicSquare')return 'A three-by-three square. Only the center cell is given: '+d.center+'. All other cells are empty.';
+ if(d.type==='trianglePuzzle')return 'A triangle with empty circles at the three vertices and the midpoint of each side: six circles in total.';
+ if(d.type==='train')return 'Train cars, in order: '+d.cars.map(c=>c.label+', '+c.length).join('; ')+'.';
+ if(d.type==='modelChoices')return d.models.map((parts,i)=>String.fromCharCode(65+i)+': whole '+d.whole+'; parts '+parts.join(', ')).join('. ')+'.';
+ if(d.type==='barGraph'||d.type==='horizontalBars')return d.title+'. Axes: '+d.xLabel+'; '+d.yLabel+'. Tick marks: '+d.ticks.join(', ')+'. Bar endpoints are approximately '+d.items.map(i=>i.label+' '+i.value).join('; ')+'.';
+if(d.type==='barModel')return `Bar model: whole ${d.whole}; equal parts labeled ${d.parts.join(', ')}.`;if(d.type==='grid')return `Rectangle with ${d.rows} row(s) and ${d.cols} columns; ${d.shaded.length} cells colored.`;
  if(d.type==='circles'||d.type==='triangleSet')return `${d.rows} row(s) of ${d.cols} ${d.type==='circles'?'circles':'triangles'}; ${d.shaded.length} colored.`;
  if(d.type==='sectors')return `${d.shape} divided into ${d.parts} equal parts; ${d.shaded.length} colored.`;
  if(d.type==='fractionLine')return `Number line from 0 to 1 with ${d.parts} equal intervals. `+Object.entries(d.labels||{}).map(([i,label])=>`Point ${label} is ${i} intervals after 0.`).join(' ')+(d.points||[]).map(i=>`The marked point is ${i} intervals after 0.`).join(' ');
