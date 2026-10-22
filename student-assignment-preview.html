@@ -30,6 +30,7 @@ $('load').onclick=async()=>{
   const id=$('assignment').value.trim();
   const assignment=await getDoc(doc(db,'assignments',id));
   if(!assignment.exists()||assignment.data().published!==true)throw new Error('Assignment not available');
+  if(assignment.data().type!=='classwork')throw new Error('This preview is for classwork only. Tests require the teacher-controlled assessment page.');
   const info=await submissionStatus({auth,db,assignmentId:id});
   $('state').textContent='Status: '+info.status+(info.attempt?' | Attempt: '+info.attempt:'');
   allowed=info.status==='not_submitted'||info.status==='returned';
