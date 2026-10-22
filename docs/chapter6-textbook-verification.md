@@ -18,7 +18,7 @@ Source: user-provided Chapter 6.pdf, printed pages 112–137 (PDF pages 1–26).
 | Chapter Review | 134–135 | 44 |
 | Cumulative Review | 136–137 | 21 |
 
-Total: 428 supplied exercises. The PDF starts at Lesson 52; Lesson 51/pages 110–111 are not supplied and are not invented or claimed complete. The user has been asked whether that lesson is also assigned; work on the supplied pages continues independently.
+Total: 428 supplied exercises. The user confirmed that Chapter 5 ends with Lesson 48 and that STEM Lessons 49–51 are intentionally excluded. Chapter 6 starts at Lesson 52 on printed page 112; its assigned scope is the supplied Lessons 52–62 and reviews. No missing Lesson 51 is required.
 
 Student wording, numbering, directions, given labels, coordinates, multiple-choice distractors and units are preserved. Plain text spells out line/ray/segment notation where needed. Code-native diagrams recreate the givens: grids, labeled lines/points, protractors, angle relationships, street layout, polygons, corresponding figures, transformations, circles and polyhedrons. Decorative photos/houses are omitted. Measurement rays are stored as drawing endpoints; no teacher classification/measurement key is published. Private mathematical checks confirm the corresponding polygon pairs are congruent or proportional as intended. Rotated-letter choices preserve their orientations. Solid figures preserve dashed hidden edges and base shading. No red answer annotations, completed drawing solutions, worked instructional examples or scans are uploaded.
 

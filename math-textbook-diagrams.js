@@ -10,14 +10,14 @@ export function diagram(d){
   text(325,45,d.top);line(315,58,235,105);line(335,58,415,105);text(225,130,d.left);text(425,130,d.right);
   // Only the originally printed first split is supplied. Further factors are student work.
  }else if(d.type==='numberLine'){
-  line(25,115,625,115);for(let n=d.min;n<=d.max;n++){const x=25+(n-d.min)*600/(d.max-d.min);line(x,106,x,124);text(x,153,String(n));}
+  line(25,115,625,115);for(let n=d.min;n<=d.max;n++){const x=25+(n-d.min)*600/(d.max-d.min);line(x,106,x,124);text(x,153,String(n));}for(const point of d.points||[])svg.append(svgEl('circle',{cx:25+(point-d.min)*600/(d.max-d.min),cy:115,r:5,fill:'#007caf'}));
  }else if(d.type==='modelGroup'){
   const count=d.colored.length,step=135,x0=325-(count-1)*step/2;
-  d.colored.forEach((colored,index)=>{const cx=x0+index*step,cy=130;
-   if(d.shape==='rect'){for(let part=0;part<d.parts;part++)svg.append(svgEl('rect',{x:cx-55+part*110/d.parts,y:100,width:110/d.parts,height:60,fill:part<colored?'#b6bee8':'white',stroke:'#17212b','stroke-width':2}));}
-   else{let vs;if(d.shape==='triangle')vs=[[cx,cy-62],[cx-62,cy+55],[cx+62,cy+55]];else if(d.shape==='hexagon')vs=Array.from({length:6},(_,i)=>{const a=(i*60)*Math.PI/180;return [cx+58*Math.cos(a),cy+58*Math.sin(a)];});
-    for(let part=0;part<d.parts;part++){const fill=part<colored?(d.shape==='circle'?'#efdbb9':'#b6bee8'):'white';if(vs){svg.append(svgEl('polygon',{points:[[cx,cy],vs[part],vs[(part+1)%d.parts]].map(p=>p.join(',')).join(' '),fill,stroke:'#17212b','stroke-width':2}));}else{const a=(-90+part*360/d.parts)*Math.PI/180,b=(-90+(part+1)*360/d.parts)*Math.PI/180;svg.append(svgEl('path',{d:`M ${cx} ${cy} L ${cx+58*Math.cos(a)} ${cy+58*Math.sin(a)} A 58 58 0 0 1 ${cx+58*Math.cos(b)} ${cy+58*Math.sin(b)} Z`,fill,stroke:'#17212b','stroke-width':2}));}}
-   }
+  d.colored.forEach((colored,index)=>{const cx=x0+index*step,cy=130,color=d.color||(d.shape==='circle'?'#efdbb9':'#b6bee8');
+   const vs=d.shape==='triangle'?[[cx,cy-62],[cx-62,cy+55],[cx+62,cy+55]]:d.shape==='hexagon'?Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return [cx+58*Math.cos(a),cy+58*Math.sin(a)];}):null;
+   if(d.wholeUnpartitioned&&colored===d.parts){svg.append(d.shape==='rect'?svgEl('rect',{x:cx-55,y:100,width:110,height:60,fill:color,stroke:'#17212b','stroke-width':2}):vs?svgEl('polygon',{points:vs.map(p=>p.join(',')).join(' '),fill:color,stroke:'#17212b','stroke-width':2}):svgEl('circle',{cx,cy,r:58,fill:color,stroke:'#17212b','stroke-width':2}));return;}
+   if(d.shape==='rect'){for(let part=0;part<d.parts;part++)svg.append(svgEl('rect',{x:cx-55+part*110/d.parts,y:100,width:110/d.parts,height:60,fill:part<colored?color:'white',stroke:'#17212b','stroke-width':2}));}
+   else{const center=[cx,d.shape==='triangle'?cy+16:cy];for(let part=0;part<d.parts;part++){const fill=part<colored?color:'white';if(vs){let vertices=[center,vs[part],vs[(part+1)%d.parts]];if(d.cornerParts){const v=vs[part],before=vs[(part+2)%3],after=vs[(part+1)%3];vertices=[v,[(v[0]+after[0])/2,(v[1]+after[1])/2],center,[(v[0]+before[0])/2,(v[1]+before[1])/2]];}svg.append(svgEl('polygon',{points:vertices.map(p=>p.join(',')).join(' '),fill,stroke:'#17212b','stroke-width':2}));}else{const a=((d.start??-90)+part*360/d.parts)*Math.PI/180,b=((d.start??-90)+(part+1)*360/d.parts)*Math.PI/180;svg.append(svgEl('path',{d:`M ${cx} ${cy} L ${cx+58*Math.cos(a)} ${cy+58*Math.sin(a)} A 58 58 0 ${d.parts===1?1:0} 1 ${cx+58*Math.cos(b)} ${cy+58*Math.sin(b)} Z`,fill,stroke:'#17212b','stroke-width':2}));}}}
   });
  }else if(d.type==='pie'){
   text(180,23,d.title);let angle=d.start||-90;for(const item of d.items){const a=angle*Math.PI/180,b=(angle+item.value*3.6)*Math.PI/180;svg.append(svgEl('path',{d:`M 180 135 L ${180+92*Math.cos(a)} ${135+92*Math.sin(a)} A 92 92 0 ${item.value>50?1:0} 1 ${180+92*Math.cos(b)} ${135+92*Math.sin(b)} Z`,fill:item.color,stroke:'#17212b','stroke-width':2}));angle+=item.value*3.6;}d.items.forEach((item,i)=>{svg.append(svgEl('rect',{x:325,y:55+i*43,width:20,height:20,fill:item.color,stroke:'#17212b'}));svg.append(svgEl('text',{x:355,y:72+i*43},item.label+': '+item.value+'%'));});
@@ -47,6 +47,10 @@ export function diagram(d){
   const labels=['Original','A','B','C'];for(let i=0;i<4;i++){const x=82+i*163;text(x,35,labels[i]);const g=svgEl('g',{transform:`translate(${x} 150) ${i?d.transforms[i-1]:''}`});g.append(svgEl('text',{'text-anchor':'middle','dominant-baseline':'central',style:'font:bold 96px Arial,sans-serif'},d.letter));svg.append(g);}
  }else if(d.type==='streetMap'){
   svg.setAttribute('viewBox','0 0 650 380');svg.style.maxHeight='none';svg.append(svgEl('rect',{x:100,y:10,width:495,height:350,fill:'#e3efd9'}));const road=(points)=>svg.append(svgEl('polyline',{points,fill:'none',stroke:'white','stroke-width':28,'stroke-linejoin':'round'}));for(const points of ['105,100 595,100','105,300 595,300','585,10 585,360','105,240 170,240 405,100','349,6 405,100','200,360 490,185 530,165'])road(points);svg.append(svgEl('line',{x1:75,y1:10,x2:75,y2:365,stroke:'#78b9d6','stroke-width':15}));text(285,106,'Reynolds Way');text(345,306,'Purcell Avenue');for(const [x,y,label,angle]of [[55,195,'Goldberg Canal',-90],[610,190,'Foster Boulevard',-90],[285,175,'Rydberg Lane',-31],[373,50,'Russell Drive',59],[382,257,'King Road',-31]])svg.append(svgEl('text',{x,y,transform:`rotate(${angle} ${x} ${y})`,'text-anchor':'middle',style:'font-size:17px'},label));
+ }else if(d.type==='fractionNumberLine'){
+  const steps=(d.max-d.min)*d.partsPerWhole,x=i=>65+i*520/steps;line(45,150,605,150);for(let i=0;i<=steps;i++){line(x(i),142,x(i),158);if(i%d.partsPerWhole===0)text(x(i),185,d.min+i/d.partsPerWhole);if(d.jumps&&i<steps)svg.append(svgEl('path',{d:`M ${x(i+1)} 145 C ${x(i+1)} 65 ${x(i)} 65 ${x(i)} 145`,fill:'none',stroke:'#17212b','stroke-width':2}));}
+ }else if(d.type==='lineGraph'){
+  svg.setAttribute('viewBox','0 0 850 650');svg.style.maxHeight='none';text(445,28,d.title);const x=i=>125+i*590/(d.labels.length-1),y=v=>525-v*450/d.max;for(const t of d.ticks){svg.append(svgEl('line',{x1:125,y1:y(t),x2:715,y2:y(t),stroke:'#a8bfd1'}),svgEl('text',{x:112,y:y(t)+6,'text-anchor':'end',style:'font-size:17px'},t.toLocaleString('en-US')));}d.labels.forEach((label,i)=>{svg.append(svgEl('line',{x1:x(i),y1:75,x2:x(i),y2:525,stroke:'#a8bfd1'}));svg.append(svgEl('text',{x:x(i),y:552,'text-anchor':'middle',style:'font-size:16px'},label));});line(125,75,125,525);line(125,525,715,525);for(const [index,series]of d.series.entries()){svg.append(svgEl('polyline',{points:series.values.map((v,i)=>[x(i),y(v)].join(',')).join(' '),fill:'none',stroke:series.color,'stroke-width':3}));series.values.forEach((v,i)=>svg.append(svgEl('circle',{cx:x(i),cy:y(v),r:4,fill:'#17212b'})));svg.append(svgEl('line',{x1:180+index*290,y1:625,x2:220+index*290,y2:625,stroke:series.color,'stroke-width':4}),svgEl('text',{x:230+index*290,y:632},series.label));}text(425,590,d.xLabel);svg.append(svgEl('text',{x:26,y:300,transform:'rotate(-90 26 300)','text-anchor':'middle'},d.yLabel));
  }else if(d.type==='markedLine'){
   const steps=(d.max-d.min)*d.partsPerWhole;line(45,115,605,115);for(let i=0;i<=steps;i++){const x=55+i*540/steps;line(x,107,x,123);if(i%d.partsPerWhole===0)text(x,154,d.min+i/d.partsPerWhole);}svg.append(svgEl('circle',{cx:55+d.point*540/steps,cy:115,r:5,fill:'#007caf'}));
  }else if(d.type==='magicSquare'){
@@ -77,7 +81,7 @@ export function diagram(d){
  }else if(d.type==='solidRectangle'){
   svg.append(svgEl('rect',{x:170,y:90,width:d.width||160,height:42,fill:'#2176a6',stroke:'#17212b','stroke-width':2}));
  }else if(d.type==='counters'){
-  const x0=325-(d.count-1)*57/2;for(let i=0;i<d.count;i++){svg.append(svgEl('circle',{cx:x0+i*57,cy:120,r:22,fill:d.sign==='+'?'#17212b':'#a32327',stroke:'#17212b','stroke-width':2}));svg.append(svgEl('text',{x:x0+i*57,y:127,'text-anchor':'middle',style:'fill:white'},d.sign));}
+  const x0=325-(d.count-1)*57/2;for(let i=0;i<d.count;i++){const sign=d.signs?.[i]??d.sign;svg.append(svgEl('circle',{cx:x0+i*57,cy:120,r:22,fill:sign==='+'?'#17212b':'#a32327',stroke:'#17212b','stroke-width':2}));svg.append(svgEl('text',{x:x0+i*57,y:127,'text-anchor':'middle',style:'fill:white'},sign));}
  }
  return svg;
 }
@@ -101,10 +105,12 @@ if(d.type==='barModel')return `Bar model: whole ${d.whole}; equal parts labeled 
  if(d.type==='sectors')return `${d.shape} divided into ${d.parts} equal parts; ${d.shaded.length} colored.`;
  if(d.type==='fractionLine')return `Number line from 0 to 1 with ${d.parts} equal intervals. `+Object.entries(d.labels||{}).map(([i,label])=>`Point ${label} is ${i} intervals after 0.`).join(' ')+(d.points||[]).map(i=>`The marked point is ${i} intervals after 0.`).join(' ');
  if(d.type==='figureSet')return 'Nine figures in three rows. Top: orange triangle, orange triangle, orange triangle. Middle: purple rectangle, purple triangle, purple triangle. Bottom: purple triangle, orange rectangle, purple triangle.';
- if(d.type==='modelGroup')return `${d.colored.length} ${d.shape} models, each divided into ${d.parts} equal parts. Colored parts, left to right: ${d.colored.join(', ')}.`;
- if(d.type==='solidRectangle')return 'One blue rectangle.';if(d.type==='counters')return `${d.count} counters, each marked ${d.sign}.`;if(d.type==='pie')return d.title+': '+d.items.map(x=>x.label+' '+x.value+'%').join(', ')+'.';if(d.type==='clock')return 'A clock face numbered 1 through 12, with no hands or shading.';
+ if(d.type==='fractionNumberLine')return `Number line from ${d.min} to ${d.max}, each whole divided into ${d.partsPerWhole} equal intervals, with a backward arc above each interval.`;
+ if(d.type==='lineGraph')return d.title+'. '+d.xLabel+': '+d.labels.join(', ')+'. '+d.yLabel+' tick marks: '+d.ticks.join(', ')+'. Lines: '+d.series.map(s=>s.label).join(', ')+'.';
+ if(d.type==='modelGroup')return `${d.colored.length} ${d.shape} models, each divided into ${d.parts} equal parts${d.wholeUnpartitioned?' (whole colored models have no internal partition lines)':''}. Colored parts, left to right: ${d.colored.join(', ')}.`;
+ if(d.type==='solidRectangle')return 'One blue rectangle.';if(d.type==='counters')return `${d.count} counters: ${d.signs?d.signs.join(', '):'each marked '+d.sign}.`;if(d.type==='pie')return d.title+': '+d.items.map(x=>x.label+' '+x.value+'%').join(', ')+'.';if(d.type==='clock')return 'A clock face numbered 1 through 12, with no hands or shading.';
  if(d.type==='factorTree')return `${d.top} splits into ${d.left} and ${d.right}. Complete the factor tree.`;
- if(d.type==='numberLine')return `Number line from ${d.min} to ${d.max}, marked at every integer.`;
+ if(d.type==='numberLine')return `Number line from ${d.min} to ${d.max}, marked at every integer.${d.points?.length?' Given dots at '+d.points.join(', ')+'.':''}`;
  if(d.type==='venn')return `Venn diagram ${d.leftLabel} and ${d.rightLabel}. Left only: ${d.left.join(', ')}. Shared: ${d.middle.join(', ')}. Right only: ${d.right.join(', ')}.`;
  return '';
 }
