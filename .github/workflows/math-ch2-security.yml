@@ -1,0 +1,23 @@
+name: Math Chapter 2 Security Tests
+on:
+  push:
+    branches:
+      - feature/math-ch2-secure-test
+  workflow_dispatch:
+jobs:
+  math-ch2-security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm install --no-audit --no-fund
+      - run: npm run test:math2
