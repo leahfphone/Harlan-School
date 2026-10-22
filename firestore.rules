@@ -46,6 +46,19 @@ service cloud.firestore {
             && exists(/databases/$(database)/documents/assessmentReleases/history-test-1)
             && get(/databases/$(database)/documents/assessmentReleases/history-test-1).data.released == true)
         );
+      // Chapter 2 assessment: one submission per authenticated student, only while released.
+      allow create: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && submissionId == 'math2_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['student','studentUid','testTitle','submittedAt','responses'])
+        && request.resource.data.student == 'Harlan'
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.testTitle == 'Math 6 Chapter 2 Test'
+        && request.resource.data.submittedAt == request.time
+        && request.resource.data.responses is list
+        && request.resource.data.responses.size() == 37
+        && exists(/databases/$(database)/documents/assessmentReleases/math-ch2-test)
+        && get(/databases/$(database)/documents/assessmentReleases/math-ch2-test).data.released == true;
       allow update, delete: if false;
     }
 
