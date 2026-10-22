@@ -32,16 +32,6 @@ const extensions=new Set(['.html','.js','.css','.png','.jpg','.jpeg','.svg','.we
 const paths=tracked.filter(path=>!path.includes('/')&&extensions.has(extname(path))).sort();
 for(const path of paths)if((await lstat(join(root,path))).isSymbolicLink())throw new Error('Frontend symlinks require explicit review: '+path);
 const assignments=[];
-for(const chapter of [5]){
- const html=await readFile(join(root,'math-chapter-'+chapter+'-activity.html'),'utf8');
- const match=html.match(/const lessons=(\[.*?\]);const id=/s);
- if(!match)throw new Error('Cannot extract chapter '+chapter+' lesson metadata without evaluating code.');
- const lessons=JSON.parse(match[1]);
- for(const [lesson,title] of lessons){
-  const id='math6-ch'+chapter+'-'+(/^\d+$/.test(lesson)?'lesson'+lesson:lesson);
-  assignments.push({path:'assignments/'+id,data:{title,subject:'Math',chapter:String(chapter),lesson,type:'classwork',published:false}});
- }
-}
 // Textbook versions are distinct from retired sample assignment IDs.
 const textbookSource=await readFile(join(root,'math-textbook-content.js'),'utf8').catch(()=>null);
 if(textbookSource){

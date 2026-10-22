@@ -12,7 +12,8 @@ const artifacts=resolve(process.env.BROWSER_ARTIFACTS||'.runtime/browser-results
 const env=await initializeTestEnvironment({projectId:project,firestore:{host:'127.0.0.1',port:8080,rules:await readFile(resolve(root,'firestore.universal.draft.rules'),'utf8')}});
 const server=createServer(async(req,res)=>{
  try{
-  const path=resolve(root,'.'+new URL(req.url,'http://localhost').pathname);
+  const pathname=new URL(req.url,'http://localhost').pathname;
+  const path=resolve(root,pathname==='/test-legacy-math.html'?'tests/fixtures/legacy-math-chapter-5.html':'.'+pathname);
   if(relative(root,path).startsWith('..')||relative(root,path).split('/').some(p=>p.startsWith('.'))){res.writeHead(404);res.end();return;}
   const data=await readFile(path);res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.png':'image/png'})[extname(path)]||'application/octet-stream');res.end(data);
  }catch{res.writeHead(404);res.end();}
@@ -108,7 +109,7 @@ try{
  await student.setViewportSize({width:390,height:844});await student.screenshot({path:resolve(artifacts,'student-mobile.png'),fullPage:true});
  const overflow=await student.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);assert.equal(overflow,false);
  console.log('PASS narrow-screen student layout');
- const legacyCtx=await context(),legacy=await legacyCtx.newPage();await legacy.goto(base+'/math-chapter-5-activity.html?lesson=41');
+ const legacyCtx=await context(),legacy=await legacyCtx.newPage();await legacy.goto(base+'/test-legacy-math.html?lesson=41');
  await legacy.locator('#submit').click();await text(legacy,'status','Submitted successfully to teacher dashboard');
  assert.equal(await legacy.locator('#submit').isDisabled(),true);assert.equal(await legacy.getByLabel('Answer 1',{exact:true}).isDisabled(),true);await legacy.reload();await text(legacy,'status','already been submitted');
  await env.withSecurityRulesDisabled(async ctx=>{
@@ -121,25 +122,25 @@ try{
   await setDoc(doc(db,'assignments','math6-ch5-lesson41'),{title:'Chapter 5 lesson 41',subject:'Math',type:'classwork',published:true});
   await setDoc(doc(db,'assignmentAccess','math6-ch5-lesson41','students',studentUid),{active:true});
  });
- await student.goto(base+'/math-chapter-5-activity.html?lesson=41');await student.locator('#submit').click();await text(student,'status','Submitted successfully to teacher dashboard');
+ await student.goto(base+'/test-legacy-math.html?lesson=41');await student.locator('#submit').click();await text(student,'status','Submitted successfully to teacher dashboard');
  assert.equal(await student.getByLabel('Answer 1',{exact:true}).isDisabled(),true);
  await teacher.locator('#refresh').click();await teacher.locator('#subject').selectOption('Math');await text(teacher,'workItems','Chapter 5 lesson 41');
  console.log('PASS signed-in Math Chapter 5 page routes to the universal teacher grading workflow');
  // The exact Lesson 31 replacement has its own 29-exercise acceptance suite.
- // Use still-supported Chapter 5 Lesson 43 to exercise the legacy/durable bridge here.
+ // Use the archived, test-only sample to exercise compatibility with earlier cached pages.
  await env.withSecurityRulesDisabled(async ctx=>{const db=ctx.firestore();await setDoc(doc(db,'assignments','math6-ch5-lesson43'),{title:'Math legacy bridge',subject:'Math',type:'classwork',published:true});await setDoc(doc(db,'assignmentAccess','math6-ch5-lesson43','students',studentUid),{active:true});});
- await student.goto(base+'/math-chapter-5-activity.html?lesson=43');await student.locator('#submit').click();await text(student,'status','Submitted successfully to teacher dashboard');
+ await student.goto(base+'/test-legacy-math.html?lesson=43');await student.locator('#submit').click();await text(student,'status','Submitted successfully to teacher dashboard');
  await teacher.locator('#assignment').fill('math6-ch5-lesson43');await teacher.locator('#load').click();await text(teacher,'status','Assignment loaded');
  await teacher.locator('#return').click();await text(teacher,'status','Returned for corrections');
- await student.goto(base+'/math-chapter-5-activity.html?lesson=43');await student.getByLabel('Answer 1',{exact:true}).fill('Correction from actual Chapter 4 lesson');
+ await student.goto(base+'/test-legacy-math.html?lesson=43');await student.getByLabel('Answer 1',{exact:true}).fill('Correction from actual Chapter 4 lesson');
  await student.locator('#submit').click();await text(student,'status','Submitted successfully to teacher dashboard');assert.equal(await student.getByLabel('Answer 1',{exact:true}).isDisabled(),true);
  await teacher.locator('#load').click();await text(teacher,'summary','Current attempt: 2');assert.equal(await teacher.locator('#attempts article').count(),2);
- await legacy.goto(base+'/math-chapter-5-activity.html?lesson=43');await legacy.locator('#submit').click();await text(legacy,'status','Submitted successfully to teacher dashboard');
+ await legacy.goto(base+'/test-legacy-math.html?lesson=43');await legacy.locator('#submit').click();await text(legacy,'status','Submitted successfully to teacher dashboard');
  console.log('PASS remaining Math Chapter 5 page supports durable corrections and preserves anonymous delivery');
  // Approve the existing browser identity, then use the actual lesson with no sign-in UI.
  const existingUid=await legacy.evaluate(async()=>{const {auth}=await import('/firebase-client.js');return auth.currentUser.uid;});
  await legacy.goto(base+'/browser-setup.html');await text(legacy,'status','Browser code for your teacher');assert.equal(await legacy.locator('#code').innerText(),existingUid);assert.equal(await legacy.locator('input[type="password"]').count(),0);
- await legacy.goto(base+'/math-chapter-5-activity.html?lesson=43');await text(legacy,'status','already been submitted');
+ await legacy.goto(base+'/test-legacy-math.html?lesson=43');await text(legacy,'status','already been submitted');
  await env.withSecurityRulesDisabled(async ctx=>{
   const db=ctx.firestore();await setDoc(doc(db,'studentAccess',existingUid),{active:true,allowAnonymous:true,displayName:'Existing browser student'});
   await setDoc(doc(db,'assignmentAccess','math6-ch5-lesson43','students',existingUid),{active:true});
@@ -202,10 +203,10 @@ try{
   const id='math6-ch5-lesson42';await setDoc(doc(db,'assignments',id),{title:'Account draft test',subject:'Math',type:'classwork',published:true});
   for(const uid of [studentUid,secondUid])await setDoc(doc(db,'assignmentAccess',id,'students',uid),{active:true});
  });
- await student.goto(base+'/math-chapter-5-activity.html?lesson=42');await student.getByLabel('Answer 1',{exact:true}).fill('Private student draft');await student.locator('#save').click();await text(student,'status','Progress saved to your account');
- const anotherDevice=await context(),devicePage=await anotherDevice.newPage();await devicePage.goto(base+'/student-account.html');await signIn(devicePage,'student@local.test');await devicePage.goto(base+'/math-chapter-5-activity.html?lesson=42');
+ await student.goto(base+'/test-legacy-math.html?lesson=42');await student.getByLabel('Answer 1',{exact:true}).fill('Private student draft');await student.locator('#save').click();await text(student,'status','Progress saved to your account');
+ const anotherDevice=await context(),devicePage=await anotherDevice.newPage();await devicePage.goto(base+'/student-account.html');await signIn(devicePage,'student@local.test');await devicePage.goto(base+'/test-legacy-math.html?lesson=42');
  await devicePage.waitForFunction(()=>document.querySelector('[aria-label="Answer 1"]')?.value==='Private student draft');
- await student.goto(base+'/student-account.html');await student.locator('#signout').click();await text(student,'status','Student sign-in required');await signIn(student,'second@local.test');await student.goto(base+'/math-chapter-5-activity.html?lesson=42');
+ await student.goto(base+'/student-account.html');await student.locator('#signout').click();await text(student,'status','Student sign-in required');await signIn(student,'second@local.test');await student.goto(base+'/test-legacy-math.html?lesson=42');
  await student.waitForFunction(()=>!document.querySelector('#submit').disabled);assert.equal(await student.getByLabel('Answer 1',{exact:true}).inputValue(),'');
  console.log('PASS actual math drafts resume across devices and remain isolated when accounts switch');
  await devicePage.locator('#submit').click();await text(devicePage,'status','Submitted successfully to teacher dashboard');
