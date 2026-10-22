@@ -1,40 +1,33 @@
-# Development verification — 2026-10-22
+# Development verification — 2026-10-22 continuation
 
 Repository: leahfphone/Harlan-School. Branch: feature/universal-assignment-workflow.
-Original head: d5ab035. Existing Firebase project: harlan-learning-hub (not accessed).
+Base: 67d167c. Existing production project: harlan-learning-hub. No live accounts, data or rules were changed; no merge or deployment was performed.
 
-## Results
+## Verified results
 
-| Run | Passed | Failed | Interpretation |
-| --- | ---: | ---: | --- |
-| Original eight tests / original draft rules | 8 | 0 | Original coverage missed the client first-read failure. |
-| Expanded 16 tests / original draft rules | 5 | 11 | Includes downstream failures caused by the initial state read denial. |
-| Same 16 tests / fixed draft rules | 16 | 0 | Regression comparison. |
-| Final suite / fixed draft rules | 19 | 0 | Three additional authorization/atomicity scenarios and stronger invalid-grade checks. |
+- **33 Firestore emulator tests pass; zero failures.** The suite executes the actual browser submission/teacher helpers with Firebase SDK 10.14.1 and loads the draft rules.
+- **12 browser acceptance check groups pass; zero failures.** Tests use a fresh headless Chrome profile, real email/password sign-in against the Auth emulator, and the Firestore emulator. The browser allows only localhost and public Firebase SDK downloads; requests to production backends are blocked and asserted absent.
+- The original eight-test suite passed before this work; expanded original-rule comparison exposed 11 failures out of 16, many downstream of the first-state read denial. The preceding development commit passed 19 tests. This continuation expands coverage and resolves the implementation blockers listed in that report.
 
-A preliminary expanded run passed 14/16: one test constructed an invalid document reference; the restored Math Chapter 4 rule exposed an unsupported `endsWith` call. Both were corrected before the passing comparisons.
+## Changes completed
 
-The final suite executes the real student and teacher helpers using Firebase SDK 10.14.1, matching their browser imports. It verifies initial absent-state reads and atomic first submissions; locked/immutable attempts; partial-credit grading; return from graded work; separate correction attempts and retained timestamps/grades; atomic feedback; invalid grades including malformed direct batched writes; duplicate submissions and concurrent grading; enrollment, disabled enrollment and cross-student access; privilege escalation denial; teacherAccess authorization; protected content release and revocation; answer key isolation; unpublished assignment denial; payload tampering; and legacy History Test 1, Canada Test 2 and Math Chapter 4 rules.
+1. **Assignment eligibility:** teacher-managed `assignmentAccess/{assignmentId}/students/{uid}` records with `active: true` are now required in addition to active student enrollment. Revocation blocks new submissions, corrections, protected content and existing work reads. Students cannot grant access. Inactive or anonymous teacher identities cannot use teacherAccess grants.
+2. **Content isolation:** assignment metadata has a field/type/length allowlist. Student reads reject unsafe documents even if they were inserted through an administrative bypass. New protected content requires assigned membership, publication, schedule and teacher release. New assessments cannot use the legacy protectedAssessments escape path; the History Test 1 exception remains intact. Answer keys remain teacher-only.
+3. **Response boundaries:** new attempts/drafts store `responseFormat: json-v1`, `responseCount` and `responsesJson`. Rules bound UTF-8 payload size to 200,000 bytes and responseCount to 1–150. The client checks question/answer/work lengths, numbering, fields, check-history size and timestamp format. Teacher loading revalidates before displaying text. Invalid direct JSON writes remain bounded untrusted student text, are clearly flagged and can be returned; they are never evaluated, rendered as HTML, or used as grading/authorization data. Rules do not parse JSON or certify student correctness/check times. Older development list-based attempts remain readable.
+4. **Drafts:** account-saved drafts can be loaded in another signed-in session. Submission atomically deletes the draft. Locked work cannot be saved through a concurrent draft request. Device backups remain a convenience, not proof of delivery.
+5. **Teacher workflow:** a submission list now shows subject, student identity, status and date, with subject/status filters. The review displays all attempts, work, student practice checks, timestamps and feedback. Grade fields reset for each new attempt; stale review requests cannot grade/return an unseen later correction. Printing excludes login, finder and grading controls.
+6. **Math Chapter 4/5 integration:** both actual lesson pages use one shared bridge. Signed-in, assigned students use immutable universal attempts, grading and returned corrections. Existing anonymous delivery is preserved. Chapter 5 submission is enabled, exact response counts match its additional lesson questions (7/3/7/7/6/8/3/3), and successful delivery locks editing and repeat sends. Classwork hints/read-aloud remain classwork features.
+7. **Local safety:** the new shared client selects demo emulators automatically on localhost, with no live fallback. Test accounts exist only inside the local Auth emulator. Existing History Test 1 and Canada Test 2 pages and their payload/release behavior were left unchanged.
 
-## Fixes
+## Remaining release gates
 
-- Allow enrolled students to get their own absent state document so first submissions can start, while existing records remain restricted by ownership.
-- Honor `studentAccess.active == true` for new-workflow access.
-- Restore legacy Math Chapter 4 submissions in the draft using supported Rules syntax.
-- Restrict teacher state updates to valid grade/return transitions without rewriting identity or attempt numbers.
-- Require grading and valid feedback in the same atomic operation. Validate score range, fields, grader, attempt and timestamps; prior feedback is immutable.
-- Reject anonymous teacher clients and excessive feedback comments in the helper.
-- Add pinned test dependencies, lockfile, isolated fixtures and reproducible instructions.
+These are production preparation and review tasks, not passing emulator results:
 
-The emulator uses demo-harlan-rules on localhost, with Firestore emulator 1.19.8 and Java 21. No live Authentication, data, rules or releases were read or changed. No merge or deployment was performed. The existing firestore.rules and production HTML pages remain unchanged. The preview HTML still names the real project; these tests do not open those pages.
+- Obtain explicit approval before provisioning durable student/teacher identities, enrollment, assignment metadata, membership grants or assessment content in the live project.
+- Export and compare the currently deployed rules, confirm rollback and back up existing data. The repository firestore.rules is unchanged; it is not proof that production has no drift.
+- Inventory any preexisting protectedAssessments documents other than history-test-1 before rollout: new rules deliberately close that legacy route. Confirm existing studentAccess/teacherAccess records explicitly have active:true and assignment metadata uses the new schema.
+- Review and approve the assignment roster and teacher releases. Metadata must contain descriptive text only; a schema cannot recognize a secret manually placed into a title. Real new assessment questions and keys must be provisioned into their separate collections.
+- Review the local browser screenshots/print output and perform an approved staged acceptance run on the actual target devices/accounts. Local Chrome and a narrow viewport are not a physical iPad/Safari test or a live-project acceptance run.
+- Legacy Canada Test 2 remains a publicly hosted test by existing design. Anonymous legacy submissions remain immutable copies, without the durable-account correction workflow. Universal grading/corrections require signed-in assigned students. No claim is made that the old public Canada page is a new protected assessment.
 
-## Deployment blockers
-
-1. Assignment eligibility is still global enrollment: any active enrolled student can access published assignments and released new assessments. Implement explicit per-student assignment/course membership before broader use.
-2. Existing Math Chapter 5 posts `submissions/math5_*`, which is denied by both existing and draft rules. Decide on migration to the new durable-account workflow or separately reviewed legacy support. Chapter 4/5 adapters are not integrated with existing pages.
-3. Test questions/keys must stay out of public assignment metadata and static assets. New secure collections isolate them, but no generic schema currently enforces safe assignment metadata. Legacy Canada Test 2 questions remain publicly hosted by its existing design; this work preserves that behavior and makes no new secrecy claim for that page.
-4. Browser acceptance is pending: durable student login, preview loading, actual dashboard integration, printing and device behavior have not been exercised. Reliable cross-device drafts and roster/filter integration remain unfinished.
-5. Response count is bounded, but nested answer/work/check payload schemas and per-field length bounds need further design and validation. Current SDK/Firestore document limits are the remaining outer bound.
-6. Before any authorized rollout, compare/export deployed rules, confirm rollback and migration plans, and verify trusted enrollment/teacher provisioning. No live-project acceptance run has been performed. Provisioning, deployment and all production changes require explicit approval.
-
-The emulator verifies Rules and SDK behavior; it does not establish UI readiness or production rollout readiness.
+A controlled rollout plan is in `docs/rollout-plan.md`. Deployment and production changes remain pending explicit approval.

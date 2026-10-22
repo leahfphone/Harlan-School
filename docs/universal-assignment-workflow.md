@@ -54,3 +54,17 @@ Status: development only. Do not deploy until Firebase rules and client flows pa
 - Original attempts and grades remain accessible.
 - Unauthorized accounts cannot read or write student records.
 - Legacy History Test 1 and Canada Test 2 retain current behavior.
+
+
+## Implemented development schema (2026-10-22)
+
+- studentAccess/{uid} and additional teacherAccess/{uid} require active:true.
+- assignmentAccess/{assignmentId}/students/{uid} is teacher-managed {active:boolean}; enrollment alone is insufficient.
+- Assignment metadata is restricted to title, subject, chapter, lesson, type, published and optional availableAt. Protected questions/keys never belong here.
+- New immutable attempts use responseFormat:"json-v1", responseCount and responsesJson rather than a nested list. Rules bound the opaque UTF-8 payload to 200,000 bytes; consumers validate the response schema and render text. Older attempts remain readable. Malformed student-authored JSON is flagged for return, never trusted for grades or permissions.
+- Account drafts live at assignmentStates/{stateId}/drafts/current and use the same payload bounds. They can be saved before first submission or after return; submitting atomically removes the draft.
+- Both math lesson pages use a shared bridge: durable assigned accounts use the new immutable workflow; anonymous accounts retain legacy one-copy delivery.
+- Only History Test 1 retains student reads through the old protectedAssessments collection. New assessments require secureAssessmentContent, matching assignment membership and release; keys are teacher-only.
+- The student classwork preview does not implement a new generic quiz-taking interface. Assessment protection is verified at the Rules and actual browser-authenticated SDK layers. Existing History/Canada interfaces are preserved.
+
+See development-verification.md and rollout-plan.md for tested behavior and outstanding approval gates.

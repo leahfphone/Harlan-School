@@ -3,6 +3,8 @@
 // Never embed unreleased test questions or answer keys in public HTML.
 import {doc,getDoc,writeBatch,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
+import {encodeResponses,decodeResponses} from './response-payload.js';
+
 function validId(id) {
   if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,90}$/.test(id)) {
     throw new Error('Invalid assignment identifier');
@@ -24,7 +26,9 @@ export async function submitAssignment({auth,db,assignmentId,responses}) {
   const user=auth.currentUser;
   if(!user || user.isAnonymous) throw new Error('Student sign-in required');
   validId(assignmentId);
-  if(!Array.isArray(responses) || responses.length===0 || responses.length>150) throw new Error('Submission must contain 1–150 responses');
+  const payload=encodeResponses(responses);
+  const assignment=await getDoc(doc(db,'assignments',assignmentId));
+  if(!assignment.exists()) throw new Error('Assignment unavailable');
   const stateRef=doc(db,'assignmentStates',user.uid+'_'+assignmentId);
   const existing=await getDoc(stateRef);
   const previous=existing.exists()?existing.data():null;
@@ -45,8 +49,28 @@ export async function submitAssignment({auth,db,assignmentId,responses}) {
   else batch.set(stateRef,stateData);
   batch.set(attemptRef,{
     studentUid:user.uid,assignmentId,attemptNumber,
-    responses,submittedAt:serverTimestamp()
+    ...payload,submittedAt:serverTimestamp()
   });
+  batch.delete(doc(stateRef,'drafts','current'));
   await batch.commit();
   return {status:'submitted',attempt:attemptNumber};
+}
+
+function draftReference({auth,db,assignmentId}) {
+ const user=auth.currentUser;
+ if(!user||user.isAnonymous)throw new Error('Student sign-in required');
+ return doc(db,'assignmentStates',user.uid+'_'+validId(assignmentId),'drafts','current');
+}
+export async function saveAssignmentDraft({auth,db,assignmentId,responses}) {
+ const ref=draftReference({auth,db,assignmentId});
+ const batch=writeBatch(db);
+ batch.set(ref,{studentUid:auth.currentUser.uid,assignmentId,...encodeResponses(responses),updatedAt:serverTimestamp()});
+ await batch.commit();
+}
+export async function loadAssignmentDraft({auth,db,assignmentId}) {
+ const snapshot=await getDoc(draftReference({auth,db,assignmentId}));
+ if(!snapshot.exists())return null;
+ const data=decodeResponses(snapshot.data());
+ if(data.responseError)throw new Error(data.responseError);
+ return data;
 }

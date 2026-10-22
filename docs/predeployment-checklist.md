@@ -1,12 +1,12 @@
 # Pre-deployment verification checklist
 
-**Status:** NOT DEPLOYED. The draft rules and actual client helpers pass 19 local emulator tests as of 2026-10-22. See `development-verification.md` for evidence and remaining deployment blockers. Browser and production acceptance items below are still pending.
+**Status:** NOT DEPLOYED. The draft rules and actual client helpers pass 33 local emulator tests and local browser acceptance checks as of 2026-10-22. See `development-verification.md` for evidence and remaining deployment blockers. Local browser checks pass; target-device and production acceptance items below are still pending.
 
 ## Prerequisites
 1. Confirm the current deployed Firestore rules and export a backup.
-2. Provision the student identity securely in Firebase Authentication, then create studentAccess/{uid} through the trusted Firebase console or administrative backend.
-3. Confirm a verified teacher account can access teacher review. Future teachers need trusted provisioning into teacherAccess/{uid}; the browser cannot self-assign teacher permissions.
-4. Create a published classwork assignment document such as assignments/math6-ch4-lesson31 with type: 'classwork' and published: true. Do not store test questions in public assignment metadata.
+2. Provision the student identity securely in Firebase Authentication, then create studentAccess/{uid} with active:true through the trusted Firebase console or administrative backend.
+3. Confirm a verified teacher account can access teacher review. Future teachers need trusted provisioning into teacherAccess/{uid} with active:true; the browser cannot self-assign teacher permissions.
+4. Create a published classwork assignment document such as assignments/math6-ch4-lesson31 with title/subject, type: 'classwork' and published: true. Grant each student assignmentAccess/{assignmentId}/students/{uid}={active:true}. Do not store test questions in public assignment metadata.
 5. Verify the draft rules compile in Firebase emulator; fix any rules-language or cross-document access problems before publishing.
 6. Review Firestore rules limits and costs for batched getAfter/existsAfter calls.
 
@@ -36,12 +36,12 @@
 - Concurrent grading/return requests cannot silently overwrite state.
 - Printing preserves all attempts and feedback.
 
-## Known development gaps (must resolve)
-- Current preview uses localStorage for draft saving; reliable cross-device drafts are not yet implemented.
-- Assignment roster/eligibility needs tighter student-to-assignment authorization.
+## Rollout and device review remaining
+- Account-backed drafts are implemented and emulator/browser-tested; verify on actual target devices in the approved staged run.
+- Teacher-managed per-student assignment eligibility is implemented; provision and review the production roster only after approval.
 - New protected assessment content must be isolated from publicly hosted HTML.
-- Draft rules compile and the 19-test emulator suite passes (2026-10-22). Production deployment is still blocked by the items below.
+- Draft rules compile and the 33-test emulator suite passes (2026-10-22); review the deployed rules and rollback plan after approval.
 - No end-to-end test against the real Firebase project has been run.
-- Existing Math Chapter 4/5 pages have not been migrated to this client.
-- Preview pages are not a replacement for the current teacher dashboard.
-- Ensure student preview validates assignment release before allowing a test to open; Firestore rules are the authoritative enforcement layer.
+- Existing Math Chapter 4/5 pages support the shared client for durable assigned accounts and preserve anonymous compatibility.
+- The existing teacher dashboard links to the universal review/filter/grading page; verify the approved production rollout and device behavior.
+- The classwork preview rejects assessments; protected assessment reads are verified at the Rules and browser-authenticated SDK layers. A generic new quiz interface is outside this rollout.

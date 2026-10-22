@@ -4,49 +4,8 @@
 <style>body{font:19px/1.6 Arial,sans-serif;max-width:800px;margin:auto;padding:22px;background:#f5f7fa;color:#17212b}section{background:white;border:2px solid #cbd4df;border-radius:14px;padding:20px;margin:18px 0}input,textarea,button{font:inherit;padding:10px;border-radius:8px;margin:5px}textarea{width:95%;min-height:85px}button{background:#e1f1fa;cursor:pointer}button:disabled{opacity:.55}label{display:block;margin:12px 0}#status{font-weight:bold}</style></head>
 <body><h1>Classwork Submission — Development Preview</h1>
 <p>This page is for testing the shared assignment workflow. It is not a live textbook lesson and does not contain quizzes, tests, or answer keys.</p>
-<section><h2>Student sign-in</h2><label>Email <input id="email" type="email" autocomplete="username"></label><label>Password <input id="password" type="password" autocomplete="current-password"></label><button id="signin">Sign in</button><button id="signout">Sign out</button></section>
+<p id="environment"></p><section><h2>Student sign-in</h2><label>Email <input id="email" type="email" autocomplete="username"></label><label>Password <input id="password" type="password" autocomplete="current-password"></label><button id="signin">Sign in</button><button id="signout">Sign out</button></section>
 <section><h2>Assignment</h2><label>Assignment ID <input id="assignment" value="math6-ch4-lesson31"></label><button id="load">Check assignment status</button><p id="state">Not checked</p></section>
-<section id="work"><h2>Practice response</h2><label>Question <input id="question" value="Explain how you found your answer."></label><label>Answer <textarea id="answer"></textarea></label><label>Show your work <textarea id="shown"></textarea></label><button id="save">Save draft on this device</button><button id="submit" disabled>Submit to teacher</button><p>After submission, work is locked until the teacher returns it. A local draft is not proof of submission.</p></section>
+<section id="work"><h2>Practice response</h2><label>Question <input maxlength="2000" id="question" value="Explain how you found your answer."></label><label>Answer <textarea maxlength="4000" id="answer"></textarea></label><label>Show your work <textarea maxlength="8000" id="shown"></textarea></label><button id="save">Save draft to my account</button><button id="submit" disabled>Submit to teacher</button><p>After submission, work is locked until the teacher returns it. A saved draft is not proof of submission.</p></section>
 <p id="status" role="status"></p>
-<script type="module">
-import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import {getFirestore,doc,getDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-import {submissionStatus,submitAssignment} from './assignment-submission.js';
-const app=initializeApp({apiKey:'AIzaSyCyp8bBl38v5Gb8xVsQrfmdnEXisarqBQQ',authDomain:'harlan-learning-hub.firebaseapp.com',projectId:'harlan-learning-hub',appId:'1:341058218983:web:cb24701e93a511fd336b42'});
-const auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
-const say=s=>$('status').textContent=s;
-const draftKey=()=> 'harlan-preview-'+(auth.currentUser?.uid||'signed-out')+'-'+$('assignment').value.trim();
-let allowed=false;
-function lock(){['question','answer','shown'].forEach(id=>$(id).disabled=!allowed);$('submit').disabled=!allowed;$('save').disabled=!allowed}
-function draft(){return {question:$('question').value,answer:$('answer').value,work:$('shown').value}}
-$('save').onclick=()=>{if(!allowed)return;localStorage.setItem(draftKey(),JSON.stringify(draft()));say('Draft saved on this device only.')};
-$('signin').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value,$('password').value)}catch(e){say('Sign-in failed: '+e.code)}};
-$('signout').onclick=()=>signOut(auth);
-onAuthStateChanged(auth,u=>{allowed=false;lock();$('answer').value='';$('shown').value='';$('state').textContent='Not checked';say(u?'Signed in as '+u.email+'. Check assignment status.':'Student sign-in required.')});
-$('load').onclick=async()=>{
- allowed=false;lock();
- try{
-  const id=$('assignment').value.trim();
-  const assignment=await getDoc(doc(db,'assignments',id));
-  if(!assignment.exists()||assignment.data().published!==true)throw new Error('Assignment not available');
-  if(assignment.data().type!=='classwork')throw new Error('This preview is for classwork only. Tests require the teacher-controlled assessment page.');
-  const info=await submissionStatus({auth,db,assignmentId:id});
-  $('state').textContent='Status: '+info.status+(info.attempt?' | Attempt: '+info.attempt:'');
-  allowed=info.status==='not_submitted'||info.status==='returned';
-  if(allowed){try{const saved=JSON.parse(localStorage.getItem(draftKey())||'null');if(saved){$('question').value=saved.question||'';$('answer').value=saved.answer||'';$('shown').value=saved.work||''}}catch(e){}}
-  lock();say(allowed?'Ready for work.':'Work locked until teacher returns it.');
- }catch(e){say('Could not open assignment: '+(e.code||e.message))}
-};
-$('submit').onclick=async()=>{
- if(!allowed)return;
- if(!confirm('Submit this work to the teacher? You cannot change it until it is returned.'))return;
- $('submit').disabled=true;
- try{
-  const d=draft();
-  await submitAssignment({auth,db,assignmentId:$('assignment').value.trim(),responses:[{number:1,question:d.question,answer:d.answer,work:d.work,checks:[]}]});
-  allowed=false;lock();localStorage.removeItem(draftKey());$('state').textContent='Status: submitted';say('Submitted to teacher successfully.');
- }catch(e){lock();say('Not submitted. Draft remains on this device. '+(e.code||e.message))}
-};
-lock();
-</script></body></html>
+<script type="module" src="./student-assignment-preview.js"></script></body></html>

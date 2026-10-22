@@ -3,11 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "firebase emulators:exec --project demo-harlan-rules --config firebase.emulator.json --only firestore \"node --test tests/firestore-workflow.test.mjs\""
+    "test": "firebase emulators:exec --project demo-harlan-rules --config firebase.emulator.json --only firestore \"node --test tests/firestore-workflow.test.mjs\"",
+    "test:browser": "firebase emulators:exec --project demo-harlan-rules --config firebase.emulator.json --only auth,firestore \"node tests/browser-workflow.test.mjs\""
   },
   "devDependencies": {
     "firebase": "10.14.1",
     "@firebase/rules-unit-testing": "3.0.4",
-    "firebase-tools": "14.22.0"
+    "firebase-tools": "14.22.0",
+    "playwright": "1.62.1"
   }
 }

@@ -1,20 +1,24 @@
-# Local Firestore workflow tests
+# Local workflow verification
 
-Development only. Passing emulator tests are not deployment authorization.
+Development only. Passing local tests do not authorize deployment.
 
-Prerequisites: Node.js 20 or 22, Java 21, and pnpm. From the repository root:
+Prerequisites: Node.js 20/22 or newer supported LTS, Java 21 and pnpm.
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm test
+pnpm exec playwright install chromium
+pnpm test:browser
 ```
 
-The SDK is pinned to Firebase 10.14.1, matching the browser modules. Optional dependency build scripts are disabled; they are not needed for this suite.
+To use an existing Chrome executable instead of downloading Chromium, set CHROME_EXECUTABLE to its absolute executable path when running the browser suite. Optional BROWSER_ARTIFACTS selects a screenshots/print-output directory; the default is the ignored .runtime/browser-results folder.
 
-The CLI and test environment use `demo-harlan-rules`, an isolated demo project. Only the Firestore emulator starts, on 127.0.0.1:8080. No live accounts or Firebase project data are required. Stop if the port is occupied. Do not open the preview pages against production to run these tests: their app configuration still names the existing `harlan-learning-hub` project.
+Both CLI/test environments use demo-harlan-rules. Rules tests start only Firestore (127.0.0.1:8080). Browser tests start Firestore and Auth (127.0.0.1:9099), seed ephemeral demo accounts, serve a loopback-only HTTP site and launch a fresh browser profile. Stop if ports are occupied. The browser test refuses requests outside localhost and www.gstatic.com (public SDK downloads). Do not run it against a deployed URL or change the demo project ID to production.
 
-The suite loads the actual student and teacher modules, replacing only the browser SDK import with the same local SDK version. Each test clears and seeds emulator data. It covers first submissions, immutable attempts and grades, partial credit, atomic grading and corrections, concurrent submissions/grading, release/revocation, unauthorized access, malformed grades and payloads, and legacy History Test 1, Canada Test 2, and Math Chapter 4 submission rules.
+33 Rules/helper tests cover first submissions, partial credit, immutable history, corrections, concurrency, enrollment and assignment membership/revocation, teacher grants, release and answer-key security, schedules, safe metadata, bounded response payloads, malformed direct writes, private account drafts and stale teacher review. Existing History Test 1, Canada Test 2 and Math Chapter 4/5 rules are included.
 
-Expected permission-denied messages are emitted by negative authorization tests. Use the final test counts and exit code to determine success.
+Browser checks exercise durable sign-in, account draft reload, locked editing, dashboard filtering, safe rendering, grade validation/partial credit, corrections, printing, narrow-screen layout, both actual math pages with durable and anonymous accounts, protected assessment reads and no production network access. These are local Chrome checks, not a physical iPad/Safari acceptance run.
 
-To reproduce the original-rule regression comparison, extract the rules at the original branch commit and set `WORKFLOW_RULES` to that local path inside the emulator test command. This override affects test rule loading only.
+New attempts use bounded response JSON; teacher consumers revalidate it and preserve earlier development-format attempts. Student-authored checks/timestamps are not authoritative grades or submission times. Rules enforce authoritative server timestamps and teacher-only feedback separately.
+
+Negative tests emit expected permission-denied messages. Success is determined by the final test counts/exit status, not by absence of error strings.

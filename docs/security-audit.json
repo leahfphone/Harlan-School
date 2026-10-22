@@ -1,30 +1,18 @@
 {
-  "score": 2,
-  "summary": "Core workflow and legacy regressions pass 19 emulator tests; deployment remains blocked by incomplete assignment eligibility, migration and public-content isolation.",
+  "score": 4,
+  "summary": "Core authorization, bounded new-workflow payloads and immutable grading are covered by 33 emulator tests and browser acceptance. Production migration and legacy public/anonymous behavior require explicit review.",
   "findings": [
     {
       "check": "Business Logic vs. Rules",
-      "severity": "major",
-      "issue": "Active enrollment authorizes all published assignments; assignment-specific eligibility is not enforced.",
-      "recommendation": "Add trusted course or student assignment membership and emulator coverage."
-    },
-    {
-      "check": "Business Logic vs. Rules",
-      "severity": "major",
-      "issue": "Existing Math Chapter 5 submission path is denied by existing and draft rules.",
-      "recommendation": "Complete reviewed migration or explicit legacy support before rollout."
-    },
-    {
-      "check": "Storage Abuse / Type Safety",
       "severity": "minor",
-      "issue": "Responses have a count limit but nested fields have no individual schema or length bounds.",
-      "recommendation": "Define and enforce bounded response/work/check schemas."
+      "issue": "Legacy anonymous submissions preserve prior behavior and do not prove durable student identity; Canada Test 2 questions remain statically public.",
+      "recommendation": "Retain this explicit compatibility exception during rollout; use assigned durable identities and secure content collections for new protected assessments."
     },
     {
-      "check": "Business Logic vs. Rules",
-      "severity": "major",
-      "issue": "Published assignment metadata could contain protected questions or keys; legacy Canada questions are statically public.",
-      "recommendation": "Audit content and prohibit protected material in public metadata/assets; preserve legacy behavior only as an explicit migration decision."
+      "check": "Type Safety",
+      "severity": "minor",
+      "issue": "Rules intentionally accept bounded opaque response JSON; malformed direct writes can corrupt only the student-authored work for that attempt. They are detected before rendering and do not affect grading authority.",
+      "recommendation": "Keep revalidation and text-only rendering in every consumer; a future trusted validation backend may reject malformed JSON before storage."
     }
   ]
 }
