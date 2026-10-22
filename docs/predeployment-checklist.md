@@ -1,6 +1,6 @@
 # Pre-deployment verification checklist
 
-**Status:** NOT DEPLOYED. This checklist documents tests that must be performed, not tests that have passed.
+**Status:** NOT DEPLOYED. The draft rules and actual client helpers pass 19 local emulator tests as of 2026-10-22. See `development-verification.md` for evidence and remaining deployment blockers. Browser and production acceptance items below are still pending.
 
 ## Prerequisites
 1. Confirm the current deployed Firestore rules and export a backup.
@@ -40,7 +40,7 @@
 - Current preview uses localStorage for draft saving; reliable cross-device drafts are not yet implemented.
 - Assignment roster/eligibility needs tighter student-to-assignment authorization.
 - New protected assessment content must be isolated from publicly hosted HTML.
-- Rules have not been compiled or emulator-tested.
+- Draft rules compile and the 19-test emulator suite passes (2026-10-22). Production deployment is still blocked by the items below.
 - No end-to-end test against the real Firebase project has been run.
 - Existing Math Chapter 4/5 pages have not been migrated to this client.
 - Preview pages are not a replacement for the current teacher dashboard.

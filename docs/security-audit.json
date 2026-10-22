@@ -1,0 +1,30 @@
+{
+  "score": 2,
+  "summary": "Core workflow and legacy regressions pass 19 emulator tests; deployment remains blocked by incomplete assignment eligibility, migration and public-content isolation.",
+  "findings": [
+    {
+      "check": "Business Logic vs. Rules",
+      "severity": "major",
+      "issue": "Active enrollment authorizes all published assignments; assignment-specific eligibility is not enforced.",
+      "recommendation": "Add trusted course or student assignment membership and emulator coverage."
+    },
+    {
+      "check": "Business Logic vs. Rules",
+      "severity": "major",
+      "issue": "Existing Math Chapter 5 submission path is denied by existing and draft rules.",
+      "recommendation": "Complete reviewed migration or explicit legacy support before rollout."
+    },
+    {
+      "check": "Storage Abuse / Type Safety",
+      "severity": "minor",
+      "issue": "Responses have a count limit but nested fields have no individual schema or length bounds.",
+      "recommendation": "Define and enforce bounded response/work/check schemas."
+    },
+    {
+      "check": "Business Logic vs. Rules",
+      "severity": "major",
+      "issue": "Published assignment metadata could contain protected questions or keys; legacy Canada questions are statically public.",
+      "recommendation": "Audit content and prohibit protected material in public metadata/assets; preserve legacy behavior only as an explicit migration decision."
+    }
+  ]
+}

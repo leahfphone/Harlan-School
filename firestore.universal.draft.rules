@@ -13,7 +13,8 @@ service cloud.firestore {
     function student(uid) {
       return signedIn() && request.auth.uid == uid
         && request.auth.token.firebase.sign_in_provider != 'anonymous'
-        && exists(/databases/$(database)/documents/studentAccess/$(uid));
+        && exists(/databases/$(database)/documents/studentAccess/$(uid))
+        && get(/databases/$(database)/documents/studentAccess/$(uid)).data.active == true;
     }
     function releaseEnabled(id) {
       return exists(/databases/$(database)/documents/assessmentReleases/$(id))
@@ -28,8 +29,23 @@ service cloud.firestore {
         );
     }
 
-    // Legacy History test rules, preserved without changes.
+    // Legacy submission formats and release checks are preserved.
     match /submissions/{submissionId} {
+      // Chapter 4 student practice: one submission per lesson and anonymous student.
+      allow create: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && submissionId.matches('math4_(31|32|33|34|35|36|37|38|review|cumulative)_[A-Za-z0-9]+')
+        && submissionId.matches('math4_(31|32|33|34|35|36|37|38|review|cumulative)_' + request.auth.uid)
+        && request.resource.data.keys().hasOnly(['student','studentUid','testTitle','submittedAt','responses'])
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.student == 'Harlan'
+        && request.resource.data.testTitle is string
+        && request.resource.data.testTitle.matches('Math 6 Chapter 4 — .*')
+        && request.resource.data.responses is list
+        && request.resource.data.responses.size() == 3
+        && request.resource.data.submittedAt == request.time;
+
+
       allow read: if legacyTeacher();
       allow create: if signedIn()
         && request.auth.token.firebase.sign_in_provider == 'anonymous'
@@ -93,7 +109,7 @@ service cloud.firestore {
     match /assignments/{assignmentId} {
       allow read: if teacher() ||
         (signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous'
-          && exists(/databases/$(database)/documents/studentAccess/$(request.auth.uid))
+          && student(request.auth.uid)
           && resource.data.published == true);
       allow create, update, delete: if teacher();
     }
@@ -101,9 +117,13 @@ service cloud.firestore {
     // Student may create the first attempt only. Teacher controls return status.
     // Draft autosaving requires a separate implementation and rules review.
     match /assignmentStates/{stateId} {
-      allow read: if teacher() || (signedIn()
-        && resource.data.studentUid == request.auth.uid
-        && student(request.auth.uid));
+      // A first-time client must be able to read its absent state document.
+      allow get: if teacher() || (signedIn() && student(request.auth.uid)
+        && ((!exists(/databases/$(database)/documents/assignmentStates/$(stateId))
+          && stateId.matches(request.auth.uid + '_[A-Za-z0-9_-]{1,90}'))
+          || resource.data.studentUid == request.auth.uid));
+      allow list: if teacher() || (signedIn() && student(request.auth.uid)
+        && resource.data.studentUid == request.auth.uid);
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
           'studentUid','assignmentId','status','currentAttempt','updatedAt'
@@ -114,12 +134,18 @@ service cloud.firestore {
         && request.resource.data.assignmentId is string
         && assignmentAvailable(request.resource.data.assignmentId)
         && request.resource.data.status == 'submitted'
+        && request.resource.data.currentAttempt is int
         && request.resource.data.currentAttempt == 1
         && request.resource.data.updatedAt == request.time
         && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/1)
         && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/1).data.studentUid == request.auth.uid
         && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/1).data.assignmentId == request.resource.data.assignmentId;
-      allow update: if teacher() || (
+      allow update: if (teacher()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && ((request.resource.data.status == 'returned' && resource.data.status in ['submitted','graded'])
+          || (request.resource.data.status == 'graded' && resource.data.status == 'submitted'
+            && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/feedback/$( 'attempt_' + string(resource.data.currentAttempt) )).data.attemptNumber == resource.data.currentAttempt))) || (
         signedIn()
         && student(request.auth.uid)
         && resource.data.studentUid == request.auth.uid
@@ -130,6 +156,8 @@ service cloud.firestore {
         && request.resource.data.studentUid == resource.data.studentUid
         && request.resource.data.assignmentId == resource.data.assignmentId
         && request.resource.data.status == 'submitted'
+        && request.resource.data.currentAttempt is int
+        && assignmentAvailable(resource.data.assignmentId)
         && request.resource.data.currentAttempt == resource.data.currentAttempt + 1
         && request.resource.data.updatedAt == request.time
         && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.currentAttempt)))
@@ -153,6 +181,8 @@ service cloud.firestore {
           ])
           && request.resource.data.studentUid == request.auth.uid
           && student(request.auth.uid)
+          && request.resource.data.attemptNumber is int
+          && request.resource.data.assignmentId is string
           && request.resource.data.responses is list
           && request.resource.data.responses.size() > 0
           && request.resource.data.responses.size() <= 150
@@ -187,7 +217,25 @@ service cloud.firestore {
         allow read: if teacher() || (signedIn()
           && student(request.auth.uid)
           && get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.studentUid == request.auth.uid);
-        allow create, update: if teacher();
+        allow create: if teacher()
+          && request.resource.data.keys().hasAll(['attemptNumber','score','maxScore','comments','graderUid','gradedAt'])
+          && request.resource.data.keys().hasOnly(['attemptNumber','score','maxScore','comments','graderUid','gradedAt'])
+          && request.resource.data.attemptNumber is int
+          && feedbackId == 'attempt_' + string(request.resource.data.attemptNumber)
+          && request.resource.data.score is number
+          && request.resource.data.maxScore is number
+          && request.resource.data.maxScore > 0
+          && request.resource.data.score >= 0
+          && request.resource.data.score <= request.resource.data.maxScore
+          && request.resource.data.comments is string
+          && request.resource.data.comments.size() <= 10000
+          && request.resource.data.graderUid == request.auth.uid
+          && request.resource.data.gradedAt == request.time
+          && get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.status == 'submitted'
+          && get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.currentAttempt == request.resource.data.attemptNumber
+          && exists(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.attemptNumber)))
+          && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.status == 'graded';
+        allow update: if false;
         allow delete: if false;
       }
     }

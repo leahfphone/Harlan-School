@@ -27,10 +27,11 @@ export async function loadTeacherReview({db,studentUid,assignmentId}) {
 
 export async function gradeAssignment({auth,db,studentUid,assignmentId,score,maxScore,comments}) {
   const teacher=auth.currentUser;
-  if(!teacher) throw new Error('Teacher sign-in required');
+  if(!teacher || teacher.isAnonymous) throw new Error('Teacher sign-in required');
   if(!Number.isFinite(score)||!Number.isFinite(maxScore)||maxScore<=0||score<0||score>maxScore) {
     throw new Error('Invalid grade');
   }
+  if(String(comments||'').length>10000) throw new Error('Comments exceed 10000 characters');
   const ref=stateRef(db,studentUid,assignmentId);
   return runTransaction(db,async tx=>{
     const snap=await tx.get(ref);
@@ -48,7 +49,7 @@ export async function gradeAssignment({auth,db,studentUid,assignmentId,score,max
 }
 
 export async function returnForCorrections({auth,db,studentUid,assignmentId}) {
-  if(!auth.currentUser) throw new Error('Teacher sign-in required');
+  if(!auth.currentUser || auth.currentUser.isAnonymous) throw new Error('Teacher sign-in required');
   const ref=stateRef(db,studentUid,assignmentId);
   return runTransaction(db,async tx=>{
     const snap=await tx.get(ref);
