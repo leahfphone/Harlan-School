@@ -134,6 +134,8 @@ try{
  console.log('PASS actual Math Chapter 4 page supports durable corrections and preserves anonymous delivery');
  // Approve the existing browser identity, then use the actual lesson with no sign-in UI.
  const existingUid=await legacy.evaluate(async()=>{const {auth}=await import('/firebase-client.js');return auth.currentUser.uid;});
+ await legacy.goto(base+'/browser-setup.html');await text(legacy,'status','Browser code for your teacher');assert.equal(await legacy.locator('#code').innerText(),existingUid);assert.equal(await legacy.locator('input[type="password"]').count(),0);
+ await legacy.goto(base+'/math-chapter-4-activity.html?lesson=31');await text(legacy,'status','already been submitted');
  await env.withSecurityRulesDisabled(async ctx=>{
   const db=ctx.firestore();await setDoc(doc(db,'studentAccess',existingUid),{active:true,allowAnonymous:true,displayName:'Existing browser student'});
   await setDoc(doc(db,'assignmentAccess','math6-ch4-lesson31','students',existingUid),{active:true});

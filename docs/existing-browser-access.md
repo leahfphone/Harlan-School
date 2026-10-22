@@ -11,3 +11,8 @@ Approved browser sessions use account-backed drafts, immutable attempts, teacher
 Anonymous credentials are tied to browser storage. Another browser, a replacement device, cleared storage or signing out may produce a different UID. Access must then be explicitly re-approved. Never export authentication tokens to move access. This preserves the current student experience but does not promise the cross-device recovery of a password-based account.
 
 History Test 1 and Canada Test 2 source files and existing release/submission behavior remain unchanged. No new generic protected-test UI is delivered by this change; protected content authorization is covered by emulator/browser SDK tests. The actual Math Chapter 4/5 pages exercise the submission and correction UI.
+
+
+## Confirming the usual iPad Safari session
+
+Open browser-setup.html on Harlan’s usual iPad in the Safari browser he already uses. The page reuses the existing session and shows its UID as a browser code. If no session exists, it establishes the normal anonymous session without a password prompt. It displays no authentication token and grants no permissions. The teacher supplies that code to the authorized administrator, who verifies the identity before enrollment. Returning to index.html keeps the normal entry link unchanged. The local actual-page acceptance test verifies the same UID survives this setup page and that no password field appears.
