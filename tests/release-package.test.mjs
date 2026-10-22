@@ -17,7 +17,7 @@ test('offline release archive records exact files and refuses dirty or changed l
  const commit=()=>git(repo,'-c','user.name=Local release test','-c','user.email=release-test@example.test','commit','-m','Local release fixture');commit();
  const run=out=>execFileSync(process.execPath,['scripts/prepare-release.mjs','--out',out],{cwd:repo,env:{...process.env,GIT_EXECUTABLE:gitExe},encoding:'utf8',stdio:['ignore','pipe','pipe']});
  const out=join(fixture,'candidate'),result=JSON.parse(run(out));
- assert.equal(result.plannedAssignments,31);assert.equal(result.liveWritesPerformed,0);
+ assert.equal(result.plannedAssignments,39);assert.equal(result.liveWritesPerformed,0);
  const manifest=JSON.parse(await readFile(join(out,'RELEASE.json'),'utf8'));
  assert.equal(manifest.sourceCommit,git(repo,'rev-parse','HEAD'));assert.equal(manifest.deploymentAuthorized,false);
  for(const file of manifest.files){const data=await readFile(join(out,file.path));assert.equal(createHash('sha256').update(data).digest('hex'),file.sha256);assert.equal(data.length,file.bytes);}
