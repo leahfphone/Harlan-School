@@ -1,0 +1,18 @@
+{
+  "name": "harlan-assignment-workflow-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "firebase emulators:exec --project demo-harlan-rules --config firebase.emulator.json --only firestore \"node --test tests/firestore-workflow.test.mjs\"",
+    "test:browser": "firebase emulators:exec --project demo-harlan-rules --config firebase.emulator.json --only auth,firestore \"node tests/browser-workflow.test.mjs\"",
+    "prepare:release": "node scripts/prepare-release.mjs",
+    "test:webkit": "BROWSER_ENGINE=webkit firebase emulators:exec --project demo-harlan-rules --config firebase.emulator.json --only auth,firestore \"node tests/browser-workflow.test.mjs\"",
+    "test:release": "node --test tests/release-package.test.mjs"
+  },
+  "devDependencies": {
+    "firebase": "10.14.1",
+    "@firebase/rules-unit-testing": "3.0.4",
+    "firebase-tools": "14.22.0",
+    "playwright": "1.62.1"
+  }
+}

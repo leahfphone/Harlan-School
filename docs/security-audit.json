@@ -1,0 +1,18 @@
+{
+  "score": 4,
+  "summary": "Core authorization and immutable grading pass 36 emulator tests, including explicitly enrolled anonymous browser sessions. Anonymous enrollment requires trusted-admin active:true and allowAnonymous:true, plus per-assignment grants; no new student login is required. Live deployment remains approval-gated.",
+  "findings": [
+    {
+      "check": "Business Logic vs. Rules",
+      "severity": "minor",
+      "issue": "Legacy anonymous submissions preserve prior behavior and do not prove durable student identity; Canada Test 2 questions remain statically public.",
+      "recommendation": "Use explicit trusted-admin enrollment and per-assignment grants for new protected content. Anonymous browser credentials persist only in that browser; a replacement browser/device needs a newly approved enrollment. Keep Canada Test 2\u2019s existing public compatibility exception."
+    },
+    {
+      "check": "Type Safety",
+      "severity": "minor",
+      "issue": "Rules intentionally accept bounded opaque response JSON; malformed direct writes can corrupt only the student-authored work for that attempt. They are detected before rendering and do not affect grading authority.",
+      "recommendation": "Keep revalidation and text-only rendering in every consumer; a future trusted validation backend may reject malformed JSON before storage."
+    }
+  ]
+}

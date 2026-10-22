@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Student Assignment — Development Preview</title>
+<style>body{font:19px/1.6 Arial,sans-serif;max-width:800px;margin:auto;padding:22px;background:#f5f7fa;color:#17212b}section{background:white;border:2px solid #cbd4df;border-radius:14px;padding:20px;margin:18px 0}input,textarea,button{font:inherit;padding:10px;border-radius:8px;margin:5px}textarea{width:95%;min-height:85px}button{background:#e1f1fa;cursor:pointer}button:disabled{opacity:.55}label{display:block;margin:12px 0}#status{font-weight:bold}</style></head>
+<body><h1>Classwork Submission — Development Preview</h1>
+<p>This page is for testing the shared assignment workflow. It is not a live textbook lesson and does not contain quizzes, tests, or answer keys.</p>
+<p id="environment"></p><section><h2>Student sign-in</h2><label>Email <input id="email" type="email" autocomplete="username"></label><label>Password <input id="password" type="password" autocomplete="current-password"></label><button id="signin">Sign in</button><button id="signout">Sign out</button></section>
+<section><h2>Assignment</h2><label>Assignment ID <input id="assignment" value="math6-ch4-lesson31"></label><button id="load">Check assignment status</button><p id="state">Not checked</p></section>
+<section id="work"><h2>Practice response</h2><label>Question <input maxlength="2000" id="question" value="Explain how you found your answer."></label><label>Answer <textarea maxlength="4000" id="answer"></textarea></label><label>Show your work <textarea maxlength="8000" id="shown"></textarea></label><button id="save">Save draft to my account</button><button id="submit" disabled>Submit to teacher</button><p>After submission, work is locked until the teacher returns it. A saved draft is not proof of submission.</p></section>
+<p id="status" role="status"></p>
+<script type="module" src="./student-assignment-preview.js"></script></body></html>

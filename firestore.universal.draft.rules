@@ -1,0 +1,313 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function legacyTeacher() {
+      return signedIn() && request.auth.token.email_verified == true
+        && request.auth.token.email == 'lphone@jcatoday.org';
+    }
+    function teacher() {
+      return legacyTeacher() ||
+        (signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous'
+          && exists(/databases/$(database)/documents/teacherAccess/$(request.auth.uid))
+          && get(/databases/$(database)/documents/teacherAccess/$(request.auth.uid)).data.active == true);
+    }
+    function student(uid) {
+      return signedIn() && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/studentAccess/$(uid))
+        && get(/databases/$(database)/documents/studentAccess/$(uid)).data.active == true
+        && (request.auth.token.firebase.sign_in_provider != 'anonymous'
+          || get(/databases/$(database)/documents/studentAccess/$(uid)).data.get('allowAnonymous', false) == true);
+    }
+    function releaseEnabled(id) {
+      return exists(/databases/$(database)/documents/assessmentReleases/$(id))
+        && get(/databases/$(database)/documents/assessmentReleases/$(id)).data.released == true;
+    }
+    // JSON is opaque student work, never an authorization or grading source.
+    function validPayload(data) {
+      return data.responseFormat == 'json-v1'
+        && data.responseCount is int && data.responseCount > 0 && data.responseCount <= 150
+        && data.responsesJson is string && data.responsesJson.size() > 0
+        && data.responsesJson.toUtf8().size() <= 200000;
+    }
+    function assignmentAssigned(id) {
+      return student(request.auth.uid)
+        && exists(/databases/$(database)/documents/assignmentAccess/$(id)/students/$(request.auth.uid))
+        && get(/databases/$(database)/documents/assignmentAccess/$(id)/students/$(request.auth.uid)).data.active == true;
+    }
+    function safeMetadata(data) {
+      return data.keys().hasOnly(['title','subject','chapter','lesson','type','published','availableAt'])
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 150
+        && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 80
+        && data.type in ['classwork','assessment'] && data.published is bool
+        && (!('chapter' in data) || (data.chapter is string && data.chapter.size() <= 80))
+        && (!('lesson' in data) || (data.lesson is string && data.lesson.size() <= 80))
+        && (!('availableAt' in data) || data.availableAt is timestamp);
+    }
+    function assignmentAvailable(id) {
+      return assignmentAssigned(id)
+        && exists(/databases/$(database)/documents/assignments/$(id))
+        && safeMetadata(get(/databases/$(database)/documents/assignments/$(id)).data)
+        && get(/databases/$(database)/documents/assignments/$(id)).data.published == true
+        && (!('availableAt' in get(/databases/$(database)/documents/assignments/$(id)).data)
+          || get(/databases/$(database)/documents/assignments/$(id)).data.availableAt <= request.time)
+        && (
+          get(/databases/$(database)/documents/assignments/$(id)).data.type == 'classwork'
+          || releaseEnabled(id)
+        );
+    }
+
+    // Legacy submission formats and release checks are preserved.
+    match /submissions/{submissionId} {
+      // Chapter 4 student practice: one submission per lesson and anonymous student.
+      allow create: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && submissionId.matches('math4_(31|32|33|34|35|36|37|38|review|cumulative)_[A-Za-z0-9]+')
+        && submissionId.matches('math4_(31|32|33|34|35|36|37|38|review|cumulative)_' + request.auth.uid)
+        && request.resource.data.keys().hasOnly(['student','studentUid','testTitle','submittedAt','responses'])
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.student == 'Harlan'
+        && request.resource.data.testTitle is string
+        && request.resource.data.testTitle.matches('Math 6 Chapter 4 — .*')
+        && request.resource.data.responses is list
+        && request.resource.data.responses.size() == 3
+        && request.resource.data.submittedAt == request.time;
+
+
+      // Chapter 5 student practice: one submission per lesson and anonymous student.
+      allow create: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && submissionId.matches('math5_(41|42|43|44|45|46|review|cumulative)_[A-Za-z0-9]+')
+        && submissionId.matches('math5_(41|42|43|44|45|46|review|cumulative)_' + request.auth.uid)
+        && request.resource.data.keys().hasOnly(['student','studentUid','testTitle','submittedAt','responses'])
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.student == 'Harlan'
+        && request.resource.data.testTitle is string
+        && request.resource.data.testTitle.matches('Math 6 Chapter 5 — .*')
+        && request.resource.data.responses is list
+        && ((submissionId.matches('math5_(41|43|44)_' + request.auth.uid) && request.resource.data.responses.size() == 7)
+          || (submissionId == 'math5_45_' + request.auth.uid && request.resource.data.responses.size() == 6)
+          || (submissionId == 'math5_46_' + request.auth.uid && request.resource.data.responses.size() == 8)
+          || (submissionId.matches('math5_(42|review|cumulative)_' + request.auth.uid) && request.resource.data.responses.size() == 3))
+        && request.resource.data.submittedAt == request.time;
+
+
+      allow read: if legacyTeacher();
+      allow create: if signedIn()
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && (submissionId == request.auth.uid
+            || submissionId == 'test1_' + request.auth.uid)
+        && request.resource.data.keys().hasOnly([
+          'student', 'studentUid', 'testTitle', 'submittedAt', 'responses'
+        ])
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.student is string
+        && request.resource.data.student.size() <= 100
+        && request.resource.data.responses is list
+        && request.resource.data.submittedAt == request.time
+        && (
+          (submissionId == request.auth.uid
+            && request.resource.data.testTitle == 'Canada — Test 2'
+            && request.resource.data.responses.size() == 73)
+          ||
+          (submissionId == 'test1_' + request.auth.uid
+            && request.resource.data.testTitle == 'History & Geography — Test 1'
+            && request.resource.data.responses.size() == 61
+            && releaseEnabled('history-test-1'))
+        );
+      allow update, delete: if false;
+    }
+
+    match /assessmentReleases/{assessmentId} {
+      allow read: if teacher() || signedIn();
+      allow create, update, delete: if teacher();
+    }
+    match /protectedAssessments/{assessmentId} {
+      allow read: if teacher() || (assessmentId == 'history-test-1' && signedIn() && releaseEnabled(assessmentId));
+      allow create, update, delete: if teacher();
+    }
+
+    // New protected tests live separately from the legacy History collection.
+    // Only explicitly enrolled students can read a released assessment.
+    // Questions and answer keys must be stored in separate documents;
+    // answer keys must NEVER be student-readable.
+    match /secureAssessmentContent/{assessmentId} {
+      allow read: if teacher() || (assignmentAvailable(assessmentId) && releaseEnabled(assessmentId)
+        && get(/databases/$(database)/documents/assignments/$(assessmentId)).data.type == 'assessment');
+      allow create, update, delete: if teacher();
+    }
+    match /assessmentAnswerKeys/{assessmentId} {
+      allow read, create, update, delete: if teacher();
+    }
+
+    // Teacher/student access documents must be provisioned by a trusted admin.
+    // The client cannot grant itself teacher or student privileges.
+    match /teacherAccess/{uid} { allow read: if teacher(); allow write: if false; }
+    match /studentAccess/{uid} {
+      // Own enrollment status is readable even before approval or after revocation.
+      allow get: if teacher() || (signedIn() && request.auth.uid == uid);
+      allow list: if teacher();
+      allow write: if false;
+    }
+
+    match /assignmentAccess/{assignmentId}/students/{uid} {
+      allow read: if teacher() || student(uid);
+      allow create, update: if teacher() && request.resource.data.keys().hasOnly(['active'])
+        && request.resource.data.active is bool;
+      allow delete: if teacher();
+    }
+    match /assignments/{assignmentId} {
+      // Read validation also blocks malformed documents provisioned outside client rules.
+      allow read: if teacher() || (assignmentAssigned(assignmentId)
+        && safeMetadata(resource.data) && resource.data.published == true);
+      allow create, update: if teacher() && safeMetadata(request.resource.data);
+      allow delete: if teacher();
+    }
+
+    // Student may create the first attempt only. Teacher controls return status.
+    // Draft autosaving requires a separate implementation and rules review.
+    match /assignmentStates/{stateId} {
+      // A first-time client must be able to read its absent state document.
+      allow get: if teacher() || (signedIn() && student(request.auth.uid)
+        && ((!exists(/databases/$(database)/documents/assignmentStates/$(stateId))
+          && stateId.matches(request.auth.uid + '_[A-Za-z0-9_-]{1,90}'))
+          || (resource.data.studentUid == request.auth.uid && assignmentAssigned(resource.data.assignmentId))));
+      allow list: if teacher() || (signedIn() && student(request.auth.uid)
+        && resource.data.studentUid == request.auth.uid && assignmentAssigned(resource.data.assignmentId));
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'studentUid','assignmentId','status','currentAttempt','updatedAt'
+        ])
+        && request.resource.data.studentUid == request.auth.uid
+        && student(request.auth.uid)
+        && stateId == request.auth.uid + '_' + request.resource.data.assignmentId
+        && request.resource.data.assignmentId is string
+        && assignmentAvailable(request.resource.data.assignmentId)
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.currentAttempt is int
+        && request.resource.data.currentAttempt == 1
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/1)
+        && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/1).data.studentUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/1).data.assignmentId == request.resource.data.assignmentId;
+      allow update: if (teacher()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && ((request.resource.data.status == 'returned' && resource.data.status in ['submitted','graded'])
+          || (request.resource.data.status == 'graded' && resource.data.status == 'submitted'
+            && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/feedback/$( 'attempt_' + string(resource.data.currentAttempt) )).data.attemptNumber == resource.data.currentAttempt))) || (
+        signedIn()
+        && student(request.auth.uid)
+        && resource.data.studentUid == request.auth.uid
+        && resource.data.status == 'returned'
+        && request.resource.data.keys().hasOnly([
+          'studentUid','assignmentId','status','currentAttempt','updatedAt'
+        ])
+        && request.resource.data.studentUid == resource.data.studentUid
+        && request.resource.data.assignmentId == resource.data.assignmentId
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.currentAttempt is int
+        && assignmentAvailable(resource.data.assignmentId)
+        && request.resource.data.currentAttempt == resource.data.currentAttempt + 1
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.currentAttempt)))
+        && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.currentAttempt))).data.studentUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.currentAttempt))).data.assignmentId == resource.data.assignmentId
+      );
+      allow delete: if false;
+
+      match /attempts/{attemptId} {
+        allow read: if teacher() || (
+          signedIn()
+          && student(request.auth.uid)
+          && get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.studentUid == request.auth.uid
+          && assignmentAssigned(get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.assignmentId)
+        );
+        // Student creates a fresh immutable attempt after a teacher return.
+        // First submission requires a batch containing state creation;
+        // later submissions require state status 'returned'.
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly([
+            'studentUid','assignmentId','attemptNumber','responseFormat','responseCount','responsesJson','submittedAt'
+          ])
+          && request.resource.data.studentUid == request.auth.uid
+          && student(request.auth.uid)
+          && request.resource.data.attemptNumber is int
+          && request.resource.data.assignmentId is string
+          && validPayload(request.resource.data)
+          && request.resource.data.submittedAt == request.time
+          && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId))
+          && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.studentUid == request.auth.uid
+          && request.resource.data.assignmentId ==
+             getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.assignmentId
+          && assignmentAvailable(request.resource.data.assignmentId)
+          && (
+            (
+              attemptId == '1'
+              && request.resource.data.attemptNumber == 1
+              && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.currentAttempt == 1
+              && !exists(/databases/$(database)/documents/assignmentStates/$(stateId))
+              && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.status == 'submitted'
+            )
+            ||
+            (
+              exists(/databases/$(database)/documents/assignmentStates/$(stateId))
+              && get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.status == 'returned'
+              && request.resource.data.attemptNumber ==
+                get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.currentAttempt + 1
+              && attemptId == string(request.resource.data.attemptNumber)
+              && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.status == 'submitted'
+              && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.currentAttempt == request.resource.data.attemptNumber
+            )
+          );
+        allow update, delete: if false;
+      }
+      match /drafts/{draftId} {
+        allow get: if teacher() || (student(request.auth.uid)
+          && draftId == 'current' && stateId.matches(request.auth.uid + '_[A-Za-z0-9_-]{1,90}')
+          && (!exists(/databases/$(database)/documents/assignmentStates/$(stateId)/drafts/current)
+            || (resource.data.studentUid == request.auth.uid && assignmentAssigned(resource.data.assignmentId))));
+        allow create, update: if student(request.auth.uid) && draftId == 'current'
+          && request.resource.data.keys().hasOnly(['studentUid','assignmentId','responseFormat','responseCount','responsesJson','updatedAt'])
+          && request.resource.data.studentUid == request.auth.uid
+          && request.resource.data.assignmentId is string
+          && stateId == request.auth.uid + '_' + request.resource.data.assignmentId
+          && assignmentAvailable(request.resource.data.assignmentId)
+          && validPayload(request.resource.data) && request.resource.data.updatedAt == request.time
+          && (!existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId))
+            || getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.status == 'returned');
+        // Deleting one's own draft after submission is harmless and atomic with submit.
+        allow delete: if student(request.auth.uid) && draftId == 'current'
+          && stateId.matches(request.auth.uid + '_[A-Za-z0-9_-]{1,90}')
+          && (!exists(/databases/$(database)/documents/assignmentStates/$(stateId)/drafts/current)
+            || resource.data.studentUid == request.auth.uid);
+      }
+      match /feedback/{feedbackId} {
+        allow read: if teacher() || (signedIn()
+          && student(request.auth.uid)
+          && get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.studentUid == request.auth.uid
+          && assignmentAssigned(get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.assignmentId));
+        allow create: if teacher()
+          && request.resource.data.keys().hasAll(['attemptNumber','score','maxScore','comments','graderUid','gradedAt'])
+          && request.resource.data.keys().hasOnly(['attemptNumber','score','maxScore','comments','graderUid','gradedAt'])
+          && request.resource.data.attemptNumber is int
+          && feedbackId == 'attempt_' + string(request.resource.data.attemptNumber)
+          && request.resource.data.score is number
+          && request.resource.data.maxScore is number
+          && request.resource.data.maxScore > 0
+          && request.resource.data.score >= 0
+          && request.resource.data.score <= request.resource.data.maxScore
+          && request.resource.data.comments is string
+          && request.resource.data.comments.size() <= 10000
+          && request.resource.data.graderUid == request.auth.uid
+          && request.resource.data.gradedAt == request.time
+          && get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.status == 'submitted'
+          && get(/databases/$(database)/documents/assignmentStates/$(stateId)).data.currentAttempt == request.resource.data.attemptNumber
+          && exists(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.attemptNumber)))
+          && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.status == 'graded';
+        allow update: if false;
+        allow delete: if false;
+      }
+    }
+  }
+}
