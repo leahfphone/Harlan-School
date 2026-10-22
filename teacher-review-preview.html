@@ -48,6 +48,6 @@ async function load(){
   }catch(e){$('review').hidden=true;say('Could not load assignment: '+(e.code||e.message))}
 }
 $('load').onclick=load;
-$('grade').onclick=async()=>{try{await gradeAssignment({auth,db,...ref(),score:Number($('score').value),maxScore:Number($('max').value),comments:$('comments').value});await load();say('Grade saved.')}catch(e){say('Grade not saved: '+(e.code||e.message))}};
+$('grade').onclick=async()=>{try{await gradeAssignment({auth,db,...ref(),score:$('score').value.trim()===''?NaN:Number($('score').value),maxScore:$('max').value.trim()===''?NaN:Number($('max').value),comments:$('comments').value});await load();say('Grade saved.')}catch(e){say('Grade not saved: '+(e.code||e.message))}};
 $('return').onclick=async()=>{if(!confirm('Return this assignment for corrections?'))return;try{await returnForCorrections({auth,db,...ref()});await load();say('Returned for corrections.')}catch(e){say('Not returned: '+(e.code||e.message))}};
 </script></body></html>
