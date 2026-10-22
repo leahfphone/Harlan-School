@@ -1,0 +1,18 @@
+import test,{after,beforeEach} from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {initializeTestEnvironment,assertSucceeds,assertFails} from '@firebase/rules-unit-testing';
+import {doc,getDoc,setDoc,updateDoc,deleteDoc,serverTimestamp} from 'firebase/firestore';
+const rules=await readFile(new URL('../firestore.rules',import.meta.url),'utf8');
+const env=await initializeTestEnvironment({projectId:'demo-harlan-math2',firestore:{rules,host:'127.0.0.1',port:8080}});
+after(()=>env.cleanup());
+const anon=(uid)=>env.authenticatedContext(uid,{firebase:{sign_in_provider:'anonymous'}}).firestore();
+const teacher=env.authenticatedContext('teacher',{email:'lphone@jcatoday.org',email_verified:true}).firestore();
+const student=anon('harlan1'),other=anon('other1');
+const submission=(db=student,id='math2_harlan1')=>doc(db,'submissions',id);
+const payload=(uid='harlan1')=>({student:'Harlan',studentUid:uid,testTitle:'Math 6 Chapter 2 Test',submittedAt:serverTimestamp(),responses:Array.from({length:37},(_,i)=>({number:i+1,question:'Question '+(i+1),answer:'',work:''}))});
+beforeEach(async()=>{await env.clearFirestore();await setDoc(doc(teacher,'protectedAssessments','math-ch2-test'),{html:'<h1>Math 6 Chapter 2 Test</h1>'});await setDoc(doc(teacher,'assessmentReleases','math-ch2-test'),{released:false});});
+test('locked test content and submission are denied',async()=>{await assertFails(getDoc(doc(student,'protectedAssessments','math-ch2-test')));await assertFails(setDoc(submission(),payload()));});
+test('teacher can release and student can submit 37 answers exactly once',async()=>{await setDoc(doc(teacher,'assessmentReleases','math-ch2-test'),{released:true});await assertSucceeds(getDoc(doc(student,'protectedAssessments','math-ch2-test')));await assertSucceeds(setDoc(submission(),payload()));await assertFails(setDoc(submission(),payload()));await assertFails(updateDoc(submission(),{student:'Other'}));await assertFails(deleteDoc(submission()));});
+test('spoofed student ID, wrong count and title are denied',async()=>{await setDoc(doc(teacher,'assessmentReleases','math-ch2-test'),{released:true});await assertFails(setDoc(submission(other),payload()));await assertFails(setDoc(submission(),{...payload(),responses:[]}));await assertFails(setDoc(submission(),{...payload(),testTitle:'Fake Test'}));});
+test('student cannot release assessment or read other student answers',async()=>{await assertFails(setDoc(doc(student,'assessmentReleases','math-ch2-test'),{released:true}));await setDoc(doc(teacher,'assessmentReleases','math-ch2-test'),{released:true});await setDoc(submission(),payload());await assertFails(getDoc(submission(other)));await assertSucceeds(getDoc(submission()));await assertSucceeds(getDoc(submission(teacher)));});
+test('relocking prevents further first submissions',async()=>{await setDoc(doc(teacher,'assessmentReleases','math-ch2-test'),{released:true});await setDoc(doc(teacher,'assessmentReleases','math-ch2-test'),{released:false});await assertFails(setDoc(submission(),payload()));});
