@@ -5,8 +5,8 @@ Base: 67d167c. Existing production project: harlan-learning-hub. No live account
 
 ## Verified results
 
-- **33 Firestore emulator tests pass; zero failures.** The suite executes the actual browser submission/teacher helpers with Firebase SDK 10.14.1 and loads the draft rules.
-- **12 browser acceptance check groups pass; zero failures.** Tests use a fresh headless Chrome profile, real email/password sign-in against the Auth emulator, and the Firestore emulator. The browser allows only localhost and public Firebase SDK downloads; requests to production backends are blocked and asserted absent.
+- **34 Firestore emulator tests pass; zero failures.** The suite executes the actual browser submission/teacher helpers with Firebase SDK 10.14.1 and loads the draft rules.
+- **17 Chrome and 17 WebKit acceptance check groups pass; zero functional failures.** Tests use a fresh headless Chrome profile, real email/password sign-in against the Auth emulator, and the Firestore emulator. The browser allows only localhost and public Firebase SDK downloads; requests to production backends are blocked and asserted absent.
 - The original eight-test suite passed before this work; expanded original-rule comparison exposed 11 failures out of 16, many downstream of the first-state read denial. The preceding development commit passed 19 tests. This continuation expands coverage and resolves the implementation blockers listed in that report.
 
 ## Changes completed
@@ -31,3 +31,29 @@ These are production preparation and review tasks, not passing emulator results:
 - Legacy Canada Test 2 remains a publicly hosted test by existing design. Anonymous legacy submissions remain immutable copies, without the durable-account correction workflow. Universal grading/corrections require signed-in assigned students. No claim is made that the old public Canada page is a new protected assessment.
 
 A controlled rollout plan is in `docs/rollout-plan.md`. Deployment and production changes remain pending explicit approval.
+
+
+## Release-readiness follow-up
+
+- Added a student sign-in page linked from the Learning Hub. Students can sign in before opening the existing subject/lesson pages.
+- Device backup failures no longer prevent account draft saves/submissions, and backup cleanup cannot misreport a successful server acknowledgement as failed.
+- The actual Math Chapter 4/5 pages now scope durable drafts to the signed-in student, save account drafts and resume them in another browser session. Returned work can prefill a NEW correction attempt; immutable originals remain untouched.
+- Student sign-out clears private lesson fields and disables submission. Teacher sign-out removes the previous review and grade fields. Same-identity sign-in notifications do not reset an in-progress screen.
+- The shared client uses email/password/anonymous authentication without the unused popup/redirect resolver. It uses supported Firestore long-polling to avoid indefinitely buffered reads observed in WebKit. This can add transport latency; compare behavior on actual target devices before rollout. See [Firebase transport settings](https://firebase.google.com/docs/reference/js/firestore.firestoresettings).
+- WebKit's functional acceptance checks pass. Its native local-emulator stream-cancellation reports are retained in browser-events.json and accepted only when scoped to a local Firestore RPC and correlated within 1.5 seconds of that page's navigation/sign-in change. Every other exception and every non-allowlisted destination still fails the suite. These are local browser-engine tests, not physical iPad/Safari acceptance.
+- An offline release builder now packages a clean commit, exact frontend/rules hashes, unchanged legacy files and unpublished metadata for 18 math assignments. It makes no network calls or live writes. Its isolated test passes, including refusal of dirty sources, existing outputs and altered legacy files.
+- Read-only CLI preflight found **zero authorized Firebase accounts**. The live rules/account inventory cannot be reviewed from this workspace until the intended account signs in. No live rule comparison or account provisioning has been performed.
+
+Current release gates remain Firebase sign-in for live read-only review, approved identity/membership provisioning, approval of the concrete release package, and staged acceptance on actual devices. Production data/rules/accounts and main remain unchanged.
+
+
+### Final local validation totals
+
+| Check | Passed | Failed |
+| --- | ---: | ---: |
+| Firestore rules and actual SDK helpers | 34 | 0 |
+| Chrome browser acceptance groups | 17 | 0 |
+| WebKit browser acceptance groups | 17 | 0 |
+| Offline release integrity/refusal test | 1 | 0 |
+
+The first WebKit attempts stalled with streaming reads; the supported long-polling transport resolved that. The subsequent external-request guard caught an unused Auth iframe bootstrap; explicit email/password persistence without the popup resolver resolved it. The final WebKit run records 12 tightly scoped native local stream cancellations associated with page navigation/sign-in transitions; they are not counted as unexpected application exceptions. The final Chrome run reports none. These test-environment observations do not replace the approved live/device acceptance run.

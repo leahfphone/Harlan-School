@@ -292,3 +292,11 @@ test('disabled teacher grants and anonymous teacher identities cannot access pro
   await assertFails(setDoc(doc(db,'assignmentAccess',aid,'students','harlan-uid'),{active:true}));
  }
 });
+
+test('returned work can prefill a correction without modifying its original attempt',async()=>{
+ const {loadAssignmentWork}=await helper('assignment-submission.js');
+ await submit();assert.equal(await loadAssignmentWork(student),null);
+ await returned();const work=await loadAssignmentWork(student);
+ assert.equal(work.source,'returned');assert.equal(work.responses[0].answer,'42');
+ assert.equal((await getDoc(doc(sref(),'attempts','1'))).data().responseCount,1);
+});

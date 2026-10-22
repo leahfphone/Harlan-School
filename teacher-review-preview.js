@@ -3,13 +3,13 @@ import {auth,db,environmentLabel} from './firebase-client.js';
 import {loadTeacherReview,gradeAssignment,returnForCorrections,listTeacherWork,setAssignmentAccess} from './assignment-teacher.js';
 const $=id=>document.getElementById(id),say=s=>$('status').textContent=s;
 $('environment').textContent=environmentLabel;
-let loaded=null,generation=0,busy=false,rows=[],reviewedKey=null;
+let loaded=null,generation=0,busy=false,rows=[],reviewedKey=null,observedIdentity=undefined;
 const ref=()=>({studentUid:$('uid').value.trim(),assignmentId:$('assignment').value.trim()});
 function invalidate(){generation++;loaded=null;$('review').hidden=true;}
 for(const id of ['uid','assignment'])$(id).oninput=invalidate;
 $('signin').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value,$('password').value);$('password').value='';}catch(e){say('Sign-in failed: '+e.code);}};
 $('signout').onclick=()=>signOut(auth);
-onAuthStateChanged(auth,async u=>{invalidate();reviewedKey=null;rows=[];renderList();say(u?'Signed in: '+u.email:'Teacher sign-in required');if(u)await refresh();});
+onAuthStateChanged(auth,async u=>{const identity=u?u.uid+':'+u.isAnonymous:null;if(identity===observedIdentity)return;observedIdentity=identity;invalidate();reviewedKey=null;rows=[];$('attempts').replaceChildren();$('summary').textContent='';for(const id of ['score','max','comments'])$(id).value='';renderList();say(u?'Signed in: '+u.email:'Teacher sign-in required');if(u)await refresh();});
 function renderList(){
  $('workItems').replaceChildren();const subject=$('subject').value,status=$('statusFilter').value;
  const matching=rows.filter(r=>(!subject||r.assignment.subject===subject)&&(!status||r.status===status));

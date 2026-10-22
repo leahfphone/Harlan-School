@@ -68,3 +68,6 @@ Status: development only. Do not deploy until Firebase rules and client flows pa
 - The student classwork preview does not implement a new generic quiz-taking interface. Assessment protection is verified at the Rules and actual browser-authenticated SDK layers. Existing History/Canada interfaces are preserved.
 
 See development-verification.md and rollout-plan.md for tested behavior and outstanding approval gates.
+
+
+Student sign-in is available from the Hub through student-account.html. Actual Math Chapter 4/5 pages save durable account drafts, keep device backups separate by UID, restore returned work as a new attempt's starting point and clear private fields on sign-out. Legacy anonymous drafts retain the original device-only behavior. Device storage errors are never authoritative delivery failures.

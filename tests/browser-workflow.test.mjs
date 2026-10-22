@@ -1,11 +1,11 @@
 // Runs against local demo emulators only. Never seeds or opens the live app.
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
-import {readFile,mkdir} from 'node:fs/promises';
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {resolve,extname,relative} from 'node:path';
 import {initializeTestEnvironment} from '@firebase/rules-unit-testing';
 import {doc,setDoc,getDocs,collection} from 'firebase/firestore';
-import {chromium} from 'playwright';
+import {chromium,webkit} from 'playwright';
 
 const root=resolve(new URL('..',import.meta.url).pathname),project='demo-harlan-rules';
 const artifacts=resolve(process.env.BROWSER_ARTIFACTS||'.runtime/browser-results');await mkdir(artifacts,{recursive:true});
@@ -19,7 +19,7 @@ const server=createServer(async(req,res)=>{
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base='http://127.0.0.1:'+server.address().port;
-let browser;const blocked=[],errors=[];
+let browser,pageCounter=0;const blocked=[],errors=[],clicks=[],transitions=[];
 async function signup(email){
  const response=await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:'LocalTest123!',returnSecureToken:true})});
  const data=await response.json();assert.ok(response.ok,JSON.stringify(data));return data.localId;
@@ -32,21 +32,30 @@ async function text(page,id,part){await page.waitForFunction(({id,part})=>docume
 async function context(){
  const ctx=await browser.newContext({viewport:{width:1100,height:900}});
  ctx.setDefaultTimeout(15000);
- await ctx.route('**/*',route=>{
-  const url=new URL(route.request().url());
-  if(!['127.0.0.1','localhost','www.gstatic.com'].includes(url.hostname)){blocked.push(url.origin);return route.abort();}
-  return route.continue();
+ // Keep local WebChannel connections unintercepted. The guard intercepts
+ // and blocks every non-allowlisted destination.
+ await ctx.route(url=>!['127.0.0.1','localhost','www.gstatic.com'].includes(url.hostname),route=>{
+  blocked.push(new URL(route.request().url()).origin);return route.abort();
  });
- ctx.on('page',page=>{page.on('pageerror',e=>errors.push(e.message));page.on('dialog',dialog=>dialog.accept());});
+ await ctx.addInitScript(()=>document.addEventListener('click',e=>{if(e.target.id)console.log('acceptance-click:'+e.target.id);},true));
+ ctx.on('page',page=>{
+  const id=++pageCounter;
+  page.on('framenavigated',frame=>{if(frame===page.mainFrame())transitions.push({id,at:Date.now(),kind:'navigation'});});
+  page.on('console',m=>{if(m.text().startsWith('acceptance-click:')){clicks.push(m.text());if(/:(signin|signout)$/.test(m.text()))transitions.push({id,at:Date.now(),kind:'identity'});}});
+  page.on('pageerror',e=>errors.push({id,at:Date.now(),message:e.message}));
+  page.on('dialog',dialog=>dialog.accept());
+ });
  return ctx;
 }
 try{
  await env.clearFirestore();
- const studentUid=await signup('student@local.test'),teacherUid=await signup('teacher@local.test');
+ const authReset=await fetch('http://127.0.0.1:9099/emulator/v1/projects/demo-harlan-rules/accounts',{method:'DELETE'});assert.ok(authReset.ok,'Local Auth emulator reset failed');
+ const studentUid=await signup('student@local.test'),teacherUid=await signup('teacher@local.test'),secondUid=await signup('second@local.test');
  await env.withSecurityRulesDisabled(async ctx=>{
   const db=ctx.firestore();
   await setDoc(doc(db,'studentAccess',studentUid),{active:true,displayName:'Local Student'});
   await setDoc(doc(db,'teacherAccess',teacherUid),{active:true});
+  await setDoc(doc(db,'studentAccess',secondUid),{active:true,displayName:'Second Student'});
   for(const [id,subject] of [['math6-ch4-lesson31','Math'],['history-classwork','History']]){
    await setDoc(doc(db,'assignments',id),{title:id==='history-classwork'?'History classwork':'Math classwork',subject,type:'classwork',published:true});
    await setDoc(doc(db,'assignmentAccess',id,'students',studentUid),{active:true});
@@ -57,8 +66,10 @@ try{
   await setDoc(doc(db,'secureAssessmentContent','secure-browser-test'),{questions:['Private fixture question']});
   await setDoc(doc(db,'assessmentAnswerKeys','secure-browser-test'),{answers:['Private fixture key']});
  });
- const executablePath=process.env.CHROME_EXECUTABLE||undefined;
- browser=await chromium.launch({headless:true,executablePath});
+ const engine=process.env.BROWSER_ENGINE||'chromium';
+ assert.ok(['chromium','webkit'].includes(engine),'Unsupported test engine');
+ const executablePath=engine==='chromium'?(process.env.CHROME_EXECUTABLE||undefined):undefined;
+ browser=await ({chromium,webkit})[engine].launch({headless:true,executablePath});
  const studentCtx=await context(),teacherCtx=await context();
  const student=await studentCtx.newPage(),teacher=await teacherCtx.newPage();
  await student.goto(base+'/student-assignment-preview.html');await signIn(student,'student@local.test');
@@ -83,7 +94,8 @@ try{
  assert.equal(await teacher.locator('#attempts article').count(),2);await text(teacher,'attempts','7.5/10');await text(teacher,'attempts','Corrected answer');
  console.log('PASS correction submission preserves both attempts and original grade');
  await teacher.emulateMedia({media:'print'});assert.equal(await teacher.locator('#grading').isVisible(),false);assert.equal(await teacher.locator('#attempts').isVisible(),true);
- await teacher.pdf({path:resolve(artifacts,'teacher-attempt-history.pdf'),format:'Letter',printBackground:true});await teacher.emulateMedia({media:'screen'});
+ if(engine==='chromium')await teacher.pdf({path:resolve(artifacts,'teacher-attempt-history.pdf'),format:'Letter',printBackground:true});
+ else await teacher.screenshot({path:resolve(artifacts,'teacher-print.png'),fullPage:true});await teacher.emulateMedia({media:'screen'});
  await teacher.screenshot({path:resolve(artifacts,'teacher-review.png'),fullPage:true});
  console.log('PASS printable attempt and feedback history');
  await teacher.locator('#uid').fill('different-student');assert.equal(await teacher.locator('#review').isVisible(),false);
@@ -138,8 +150,67 @@ try{
  await teacher.locator('#assignment').fill('secure-browser-test');await teacher.locator('#revoke').click();await text(teacher,'status','Assignment access revoked');
  assert.equal((await protectedRead(student,'secureAssessmentContent')).allowed,false);
  console.log('PASS real browser credentials enforce protected assessment release, answer-key isolation and membership revocation');
- assert.deepEqual(blocked,[]);assert.deepEqual(errors,[]);
- console.log('PASS no production network requests or browser exceptions');
+
+ // A browser storage exception must not block a server write or turn its
+ // acknowledgement into a false failure notice.
+ const storageCtx=await context();
+ await storageCtx.addInitScript(()=>{
+  const nativeSet=Storage.prototype.setItem,nativeRemove=Storage.prototype.removeItem;
+  Storage.prototype.setItem=function(key,value){if(String(key).startsWith('harlan-preview-'))throw new Error('Device storage unavailable');return nativeSet.call(this,key,value);};
+  Storage.prototype.removeItem=function(key){if(String(key).startsWith('harlan-preview-'))throw new Error('Device storage unavailable');return nativeRemove.call(this,key);};
+ });
+ await env.withSecurityRulesDisabled(async ctx=>{
+  const db=ctx.firestore();
+  await setDoc(doc(db,'assignments','storage-test'),{title:'Storage test',subject:'Math',type:'classwork',published:true});
+  await setDoc(doc(db,'assignmentAccess','storage-test','students',studentUid),{active:true});
+ });
+ const storagePage=await storageCtx.newPage();await storagePage.goto(base+'/student-assignment-preview.html');await signIn(storagePage,'student@local.test');await storagePage.locator('#assignment').fill('storage-test');await storagePage.locator('#load').click();await text(storagePage,'status','Ready for work');
+ await storagePage.locator('#answer').fill('Server delivery despite storage failure');await storagePage.locator('#save').click();await text(storagePage,'status','Draft saved to your account');
+ await storagePage.locator('#submit').click();await text(storagePage,'status','Submitted to teacher successfully');
+ assert.equal(await storagePage.locator('#submit').isDisabled(),true);
+ console.log('PASS device-storage errors cannot block or misreport acknowledged account saves/submissions');
+ await env.withSecurityRulesDisabled(async ctx=>{
+  const db=ctx.firestore();
+  const id='math6-ch5-lesson42';await setDoc(doc(db,'assignments',id),{title:'Account draft test',subject:'Math',type:'classwork',published:true});
+  for(const uid of [studentUid,secondUid])await setDoc(doc(db,'assignmentAccess',id,'students',uid),{active:true});
+ });
+ await student.goto(base+'/math-chapter-5-activity.html?lesson=42');await student.getByLabel('Answer 1',{exact:true}).fill('Private student draft');await student.locator('#save').click();await text(student,'status','Progress saved to your account');
+ const anotherDevice=await context(),devicePage=await anotherDevice.newPage();await devicePage.goto(base+'/student-account.html');await signIn(devicePage,'student@local.test');await devicePage.goto(base+'/math-chapter-5-activity.html?lesson=42');
+ await devicePage.waitForFunction(()=>document.querySelector('[aria-label="Answer 1"]')?.value==='Private student draft');
+ await student.goto(base+'/student-account.html');await student.locator('#signout').click();await text(student,'status','Student sign-in required');await signIn(student,'second@local.test');await student.goto(base+'/math-chapter-5-activity.html?lesson=42');
+ await student.waitForFunction(()=>!document.querySelector('#submit').disabled);assert.equal(await student.getByLabel('Answer 1',{exact:true}).inputValue(),'');
+ console.log('PASS actual math drafts resume across devices and remain isolated when accounts switch');
+ await devicePage.locator('#submit').click();await text(devicePage,'status','Submitted successfully to teacher dashboard');
+ await teacher.locator('#uid').fill(studentUid);await teacher.locator('#assignment').fill('math6-ch5-lesson42');await teacher.locator('#load').click();await text(teacher,'status','Assignment loaded');await teacher.locator('#return').click();await text(teacher,'status','Returned for corrections');
+ await devicePage.reload();await devicePage.waitForFunction(()=>!document.querySelector('#submit').disabled);assert.equal(await devicePage.getByLabel('Answer 1',{exact:true}).inputValue(),'Private student draft');
+ console.log('PASS returned math work reopens as a starting point for a new immutable attempt');
+ await devicePage.locator('#status').evaluate(node=>console.log('acceptance-click:signout'));
+ await devicePage.evaluate(async()=>{const {auth}=await import('/firebase-client.js');const {signOut}=await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js');await signOut(auth);});
+ await text(devicePage,'status','Sign-in changed');assert.equal(await devicePage.getByLabel('Answer 1',{exact:true}).inputValue(),'');assert.equal(await devicePage.locator('#submit').isDisabled(),true);
+ console.log('PASS signing out clears private lesson fields and disables submission');
+ await teacher.locator('#signout').click();await text(teacher,'status','Teacher sign-in required');assert.equal(await teacher.locator('#attempts').innerText(),'');assert.equal(await teacher.locator('#comments').inputValue(),'');
+ console.log('PASS teacher sign-out removes private review data from the page');
+ // WebKit emits native access-control errors for local emulator streams that
+ // navigation or a sign-in change cancels. Require a matching transition and
+ // exact local Firestore RPC scope; every other exception still fails the run.
+ const expectedCancellation=e=>engine==='webkit'
+  && /^\/?127\.0\.0\.1:8080\/google\.firestore\.v1\.Firestore\/(Listen|Write)\/channel\?/.test(e.message)
+  && e.message.endsWith(' due to access control checks.')
+  && transitions.some(t=>t.id===e.id&&Math.abs(t.at-e.at)<1500);
+ const unexpected=errors.filter(e=>!expectedCancellation(e));
+ await writeFile(resolve(artifacts,'browser-events.json'),JSON.stringify({errors,transitions,unexpected},null,2));
+ assert.deepEqual(blocked,[]);assert.deepEqual(unexpected,[]);
+ console.log('PASS no production network requests or unexpected application exceptions');
+ if(errors.length)console.log('INFO '+errors.length+' verified local stream cancellations during navigation/sign-in changes');
+}catch(error){
+ if(browser){
+  let index=0;
+  for(const ctx of browser.contexts())for(const page of ctx.pages()){
+   console.error('BROWSER FAILURE',JSON.stringify({clicks,url:page.url(),status:await page.locator('#status').textContent({timeout:1000}).catch(()=>null)}));
+   await page.screenshot({path:resolve(artifacts,'failure-'+(++index)+'.png'),fullPage:true}).catch(()=>{});
+  }
+ }
+ throw error;
 }finally{
  await browser?.close();await env.cleanup();await new Promise(resolve=>server.close(resolve));
 }

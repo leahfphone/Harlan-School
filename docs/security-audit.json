@@ -1,6 +1,6 @@
 {
   "score": 4,
-  "summary": "Core authorization, bounded new-workflow payloads and immutable grading are covered by 33 emulator tests and browser acceptance. Production migration and legacy public/anonymous behavior require explicit review.",
+  "summary": "Core authorization and immutable grading pass 34 emulator tests. Cross-account draft isolation, optional device storage, and sign-out cleanup are browser-tested; live review and rollout require Firebase sign-in and explicit approval.",
   "findings": [
     {
       "check": "Business Logic vs. Rules",

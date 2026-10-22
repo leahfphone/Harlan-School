@@ -74,3 +74,17 @@ export async function loadAssignmentDraft({auth,db,assignmentId}) {
  if(data.responseError)throw new Error(data.responseError);
  return data;
 }
+
+// Returned work is used only as an editable starting point for a NEW attempt.
+export async function loadAssignmentWork({auth,db,assignmentId}) {
+ const draft=await loadAssignmentDraft({auth,db,assignmentId});
+ if(draft)return {...draft,source:'draft'};
+ const info=await submissionStatus({auth,db,assignmentId});
+ if(info.status!=='returned')return null;
+ const ref=doc(db,'assignmentStates',auth.currentUser.uid+'_'+validId(assignmentId),'attempts',String(info.attempt));
+ const snapshot=await getDoc(ref);
+ if(!snapshot.exists())return null;
+ const data=decodeResponses(snapshot.data());
+ if(data.responseError)throw new Error(data.responseError);
+ return {...data,source:'returned'};
+}

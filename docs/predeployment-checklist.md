@@ -1,6 +1,6 @@
 # Pre-deployment verification checklist
 
-**Status:** NOT DEPLOYED. The draft rules and actual client helpers pass 33 local emulator tests and local browser acceptance checks as of 2026-10-22. See `development-verification.md` for evidence and remaining deployment blockers. Local browser checks pass; target-device and production acceptance items below are still pending.
+**Status:** NOT DEPLOYED. The draft rules and actual client helpers pass 34 local emulator tests and local Chrome/WebKit acceptance checks as of 2026-10-22. See `development-verification.md` for evidence and remaining deployment blockers. Local browser checks pass; target-device and production acceptance items below are still pending.
 
 ## Prerequisites
 1. Confirm the current deployed Firestore rules and export a backup.
@@ -40,8 +40,11 @@
 - Account-backed drafts are implemented and emulator/browser-tested; verify on actual target devices in the approved staged run.
 - Teacher-managed per-student assignment eligibility is implemented; provision and review the production roster only after approval.
 - New protected assessment content must be isolated from publicly hosted HTML.
-- Draft rules compile and the 33-test emulator suite passes (2026-10-22); review the deployed rules and rollback plan after approval.
+- Draft rules compile and the 34-test emulator suite passes (2026-10-22); review the deployed rules and rollback plan after approval.
 - No end-to-end test against the real Firebase project has been run.
 - Existing Math Chapter 4/5 pages support the shared client for durable assigned accounts and preserve anonymous compatibility.
 - The existing teacher dashboard links to the universal review/filter/grading page; verify the approved production rollout and device behavior.
 - The classwork preview rejects assessments; protected assessment reads are verified at the Rules and browser-authenticated SDK layers. A generic new quiz interface is outside this rollout.
+
+- Firebase CLI has no authorized account here; sign in before the read-only deployed-rule inventory.
+- Review the clean-commit release archive and its checksum; its 18 assignment plans remain unpublished and unbound to accounts.
