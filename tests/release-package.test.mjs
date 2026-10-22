@@ -22,6 +22,7 @@ test('offline release archive records exact files and refuses dirty or changed l
  assert.equal(manifest.sourceCommit,git(repo,'rev-parse','HEAD'));assert.equal(manifest.deploymentAuthorized,false);
  for(const file of manifest.files){const data=await readFile(join(out,file.path));assert.equal(createHash('sha256').update(data).digest('hex'),file.sha256);assert.equal(data.length,file.bytes);}
  const plan=JSON.parse(await readFile(join(out,'assignment-plan.json'),'utf8'));assert.equal(plan.studentUid,null);assert.deepEqual(plan.membershipGrants,[]);assert.ok(plan.assignments.every(a=>a.data.published===false));
+ if(paths.includes('math-textbook-content.js')){assert.ok(plan.assignments.some(a=>a.path==='assignments/math6-ch4-lesson31-textbook-v1'));assert.ok(!plan.assignments.some(a=>a.path==='assignments/math6-ch4-lesson31'));}
  assert.equal(createHash('sha256').update(await readFile(out+'.tar.gz')).digest('hex'),result.sha256);
  assert.throws(()=>run(out),/Command failed/);
  const index=await readFile(join(repo,'index.html'));await writeFile(join(repo,'index.html'),Buffer.concat([index,Buffer.from('\n<!-- dirty -->')]));

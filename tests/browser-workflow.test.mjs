@@ -125,26 +125,30 @@ try{
  assert.equal(await student.getByLabel('Answer 1',{exact:true}).isDisabled(),true);
  await teacher.locator('#refresh').click();await teacher.locator('#subject').selectOption('Math');await text(teacher,'workItems','Chapter 5 lesson 41');
  console.log('PASS signed-in Math Chapter 5 page routes to the universal teacher grading workflow');
- await teacher.locator('#assignment').fill('math6-ch4-lesson31');await teacher.locator('#load').click();await text(teacher,'status','Assignment loaded');
+ // The exact Lesson 31 replacement has its own 29-exercise acceptance suite.
+ // Use still-supported Lesson 32 to exercise the legacy/durable bridge here.
+ await env.withSecurityRulesDisabled(async ctx=>{const db=ctx.firestore();await setDoc(doc(db,'assignments','math6-ch4-lesson32'),{title:'Math legacy bridge',subject:'Math',type:'classwork',published:true});await setDoc(doc(db,'assignmentAccess','math6-ch4-lesson32','students',studentUid),{active:true});});
+ await student.goto(base+'/math-chapter-4-activity.html?lesson=32');await student.locator('#submit').click();await text(student,'status','Submitted successfully to teacher dashboard');
+ await teacher.locator('#assignment').fill('math6-ch4-lesson32');await teacher.locator('#load').click();await text(teacher,'status','Assignment loaded');
  await teacher.locator('#return').click();await text(teacher,'status','Returned for corrections');
- await student.goto(base+'/math-chapter-4-activity.html?lesson=31');await student.getByLabel('Answer 1',{exact:true}).fill('Correction from actual Chapter 4 lesson');
+ await student.goto(base+'/math-chapter-4-activity.html?lesson=32');await student.getByLabel('Answer 1',{exact:true}).fill('Correction from actual Chapter 4 lesson');
  await student.locator('#submit').click();await text(student,'status','Submitted successfully to teacher dashboard');assert.equal(await student.getByLabel('Answer 1',{exact:true}).isDisabled(),true);
- await teacher.locator('#load').click();await text(teacher,'summary','Current attempt: 3');assert.equal(await teacher.locator('#attempts article').count(),3);
- await legacy.goto(base+'/math-chapter-4-activity.html?lesson=31');await legacy.locator('#submit').click();await text(legacy,'status','Submitted successfully to teacher dashboard');
+ await teacher.locator('#load').click();await text(teacher,'summary','Current attempt: 2');assert.equal(await teacher.locator('#attempts article').count(),2);
+ await legacy.goto(base+'/math-chapter-4-activity.html?lesson=32');await legacy.locator('#submit').click();await text(legacy,'status','Submitted successfully to teacher dashboard');
  console.log('PASS actual Math Chapter 4 page supports durable corrections and preserves anonymous delivery');
  // Approve the existing browser identity, then use the actual lesson with no sign-in UI.
  const existingUid=await legacy.evaluate(async()=>{const {auth}=await import('/firebase-client.js');return auth.currentUser.uid;});
  await legacy.goto(base+'/browser-setup.html');await text(legacy,'status','Browser code for your teacher');assert.equal(await legacy.locator('#code').innerText(),existingUid);assert.equal(await legacy.locator('input[type="password"]').count(),0);
- await legacy.goto(base+'/math-chapter-4-activity.html?lesson=31');await text(legacy,'status','already been submitted');
+ await legacy.goto(base+'/math-chapter-4-activity.html?lesson=32');await text(legacy,'status','already been submitted');
  await env.withSecurityRulesDisabled(async ctx=>{
   const db=ctx.firestore();await setDoc(doc(db,'studentAccess',existingUid),{active:true,allowAnonymous:true,displayName:'Existing browser student'});
-  await setDoc(doc(db,'assignmentAccess','math6-ch4-lesson31','students',existingUid),{active:true});
+  await setDoc(doc(db,'assignmentAccess','math6-ch4-lesson32','students',existingUid),{active:true});
  });
  await legacy.reload();await legacy.getByLabel('Answer 1',{exact:true}).fill('First existing-browser answer');
  await legacy.locator('#save').click();await text(legacy,'status','to your account');
  await legacy.reload();assert.equal(await legacy.getByLabel('Answer 1',{exact:true}).inputValue(),'First existing-browser answer');
  await legacy.locator('#submit').click();await text(legacy,'status','Submitted successfully to teacher dashboard');
- await teacher.locator('#uid').fill(existingUid);await teacher.locator('#assignment').fill('math6-ch4-lesson31');await teacher.locator('#load').click();await text(teacher,'summary','Current attempt: 1');
+ await teacher.locator('#uid').fill(existingUid);await teacher.locator('#assignment').fill('math6-ch4-lesson32');await teacher.locator('#load').click();await text(teacher,'summary','Current attempt: 1');
  await teacher.locator('#score').fill('7.5');await teacher.locator('#max').fill('10');await teacher.locator('#comments').fill('Browser-session partial credit');await teacher.locator('#grade').click();await text(teacher,'status','Grade saved');
  await teacher.locator('#return').click();await text(teacher,'status','Returned for corrections');
  await legacy.reload();assert.equal(await legacy.getByLabel('Answer 1',{exact:true}).inputValue(),'First existing-browser answer');
