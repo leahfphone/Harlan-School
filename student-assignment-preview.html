@@ -16,14 +16,14 @@ import {submissionStatus,submitAssignment} from './assignment-submission.js';
 const app=initializeApp({apiKey:'AIzaSyCyp8bBl38v5Gb8xVsQrfmdnEXisarqBQQ',authDomain:'harlan-learning-hub.firebaseapp.com',projectId:'harlan-learning-hub',appId:'1:341058218983:web:cb24701e93a511fd336b42'});
 const auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
 const say=s=>$('status').textContent=s;
-const draftKey=()=> 'harlan-preview-'+$('assignment').value;
+const draftKey=()=> 'harlan-preview-'+(auth.currentUser?.uid||'signed-out')+'-'+$('assignment').value.trim();
 let allowed=false;
 function lock(){['question','answer','shown'].forEach(id=>$(id).disabled=!allowed);$('submit').disabled=!allowed;$('save').disabled=!allowed}
 function draft(){return {question:$('question').value,answer:$('answer').value,work:$('shown').value}}
 $('save').onclick=()=>{if(!allowed)return;localStorage.setItem(draftKey(),JSON.stringify(draft()));say('Draft saved on this device only.')};
 $('signin').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value,$('password').value)}catch(e){say('Sign-in failed: '+e.code)}};
 $('signout').onclick=()=>signOut(auth);
-onAuthStateChanged(auth,u=>{allowed=false;lock();say(u?'Signed in as '+u.email+'. Check assignment status.':'Student sign-in required.')});
+onAuthStateChanged(auth,u=>{allowed=false;lock();$('answer').value='';$('shown').value='';$('state').textContent='Not checked';say(u?'Signed in as '+u.email+'. Check assignment status.':'Student sign-in required.')});
 $('load').onclick=async()=>{
  allowed=false;lock();
  try{
@@ -45,7 +45,7 @@ $('submit').onclick=async()=>{
  try{
   const d=draft();
   await submitAssignment({auth,db,assignmentId:$('assignment').value.trim(),responses:[{number:1,question:d.question,answer:d.answer,work:d.work,checks:[]}]});
-  allowed=false;lock();$('state').textContent='Status: submitted';say('Submitted to teacher successfully.');
+  allowed=false;lock();localStorage.removeItem(draftKey());$('state').textContent='Status: submitted';say('Submitted to teacher successfully.');
  }catch(e){lock();say('Not submitted. Draft remains on this device. '+(e.code||e.message))}
 };
 lock();
