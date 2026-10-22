@@ -65,6 +65,23 @@ service cloud.firestore {
       allow create, update, delete: if teacher();
     }
 
+    // New protected tests live separately from the legacy History collection.
+    // Only enrolled, non-anonymous students can read a released assessment.
+    // Questions and answer keys must be stored in separate documents;
+    // answer keys must NEVER be student-readable.
+    match /secureAssessmentContent/{assessmentId} {
+      allow read: if teacher() ||
+        (signedIn()
+          && student(request.auth.uid)
+          && releaseEnabled(assessmentId)
+          && exists(/databases/$(database)/documents/assignments/$(assessmentId))
+          && get(/databases/$(database)/documents/assignments/$(assessmentId)).data.published == true);
+      allow create, update, delete: if teacher();
+    }
+    match /assessmentAnswerKeys/{assessmentId} {
+      allow read, create, update, delete: if teacher();
+    }
+
     // Teacher/student access documents must be provisioned by a trusted admin.
     // The client cannot grant itself teacher or student privileges.
     match /teacherAccess/{uid} { allow read: if teacher(); allow write: if false; }
