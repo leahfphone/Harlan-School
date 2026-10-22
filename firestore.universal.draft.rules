@@ -133,6 +133,8 @@ service cloud.firestore {
         && request.resource.data.currentAttempt == resource.data.currentAttempt + 1
         && request.resource.data.updatedAt == request.time
         && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.currentAttempt)))
+        && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.currentAttempt))).data.studentUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/$(string(request.resource.data.currentAttempt))).data.assignmentId == resource.data.assignmentId
       );
       allow delete: if false;
 
@@ -152,6 +154,8 @@ service cloud.firestore {
           && request.resource.data.studentUid == request.auth.uid
           && student(request.auth.uid)
           && request.resource.data.responses is list
+          && request.resource.data.responses.size() > 0
+          && request.resource.data.responses.size() <= 150
           && request.resource.data.submittedAt == request.time
           && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId))
           && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.studentUid == request.auth.uid
@@ -162,6 +166,7 @@ service cloud.firestore {
             (
               attemptId == '1'
               && request.resource.data.attemptNumber == 1
+              && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.currentAttempt == 1
               && !exists(/databases/$(database)/documents/assignmentStates/$(stateId))
               && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.status == 'submitted'
             )
