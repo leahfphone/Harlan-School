@@ -24,20 +24,25 @@ export async function submitAssignment({auth,db,assignmentId,responses}) {
   const user=auth.currentUser;
   if(!user || user.isAnonymous) throw new Error('Student sign-in required');
   validId(assignmentId);
-  if(!Array.isArray(responses) || responses.length===0) throw new Error('No work to submit');
+  if(!Array.isArray(responses) || responses.length===0 || responses.length>150) throw new Error('Submission must contain 1–150 responses');
   const stateRef=doc(db,'assignmentStates',user.uid+'_'+assignmentId);
   const existing=await getDoc(stateRef);
   const previous=existing.exists()?existing.data():null;
+  if(previous && (previous.studentUid!==user.uid || previous.assignmentId!==assignmentId)) {
+    throw new Error('Assignment ownership mismatch');
+  }
   if(previous && previous.status!=='returned') {
     throw new Error('Assignment locked. Wait for teacher to return it.');
   }
   const attemptNumber=previous?previous.currentAttempt+1:1;
   const attemptRef=doc(stateRef,'attempts',String(attemptNumber));
   const batch=writeBatch(db);
-  batch.set(stateRef,{
+  const stateData={
     studentUid:user.uid,assignmentId,status:'submitted',
     currentAttempt:attemptNumber,updatedAt:serverTimestamp()
-  });
+  };
+  if(previous) batch.update(stateRef,stateData);
+  else batch.set(stateRef,stateData);
   batch.set(attemptRef,{
     studentUid:user.uid,assignmentId,attemptNumber,
     responses,submittedAt:serverTimestamp()
