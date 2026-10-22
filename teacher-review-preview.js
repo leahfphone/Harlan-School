@@ -1,3 +1,5 @@
+import {textbookLessons} from './math-textbook-content.js';
+import {diagram} from './math-textbook-diagrams.js';
 import {signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {auth,db,environmentLabel} from './firebase-client.js';
 import {loadTeacherReview,gradeAssignment,returnForCorrections,listTeacherWork,setAssignmentAccess} from './assignment-teacher.js';
@@ -45,7 +47,10 @@ async function load(){
    paragraph(article,'Submitted: '+(a.submittedAt?.toDate?.().toLocaleString()||'Pending'));
    if(a.responseError)paragraph(article,a.responseError);
    for(const r of a.responses){
-    const item=document.createElement('div');paragraph(item,r.number+'. '+r.question);paragraph(item,'Answer: '+(r.answer||'(blank)'));paragraph(item,'Work: '+(r.work||'(none)'));
+    const item=document.createElement('div');paragraph(item,r.number+'. '+r.question);
+    const unit=Object.values(textbookLessons).find(u=>u.assignmentId===target.assignmentId&&u.verified),q=unit?.questions.find(q=>q.number===r.number);
+    if(q?.diagram){const figure=document.createElement('div');figure.className='textbook-figure';figure.append(diagram(q.diagram));item.append(figure);}
+    paragraph(item,'Answer: '+(r.answer||'(blank)'));paragraph(item,'Work: '+(r.work||'(none)'));
     for(const c of r.checks)paragraph(item,'Student practice check: '+c.answer+' — '+(c.correct?'marked correct':'retry')+' — '+c.checkedAt);
     article.append(item);
    }
