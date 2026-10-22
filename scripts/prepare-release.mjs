@@ -42,6 +42,16 @@ for(const chapter of [4,5]){
   assignments.push({path:'assignments/'+id,data:{title,subject:'Math',chapter:String(chapter),lesson,type:'classwork',published:false}});
  }
 }
+// Textbook versions are distinct from retired sample assignment IDs.
+const textbookSource=await readFile(join(root,'math-textbook-content.js'),'utf8').catch(()=>null);
+if(textbookSource){
+ const match=textbookSource.match(/export const textbookLessons=(\{.*\});/s);
+ if(!match)throw new Error('Cannot read verified textbook metadata without evaluating code.');
+ for(const lesson of Object.values(JSON.parse(match[1]))){
+  if(lesson.verified!==true)continue;
+  assignments.push({path:'assignments/'+lesson.assignmentId,data:{title:'Lesson '+lesson.lesson+' — '+lesson.title+' (textbook)',subject:'Math',chapter:String(lesson.chapter),lesson:lesson.lesson,type:'classwork',published:false}});
+ }
+}
 await mkdir(out);await mkdir(join(out,'site'));
 const records=[];
 for(const path of paths){
