@@ -3,7 +3,7 @@ import {submissionStatus,submitAssignment} from './assignment-submission.js';
 
 export function chapter5AssignmentId(lessonId) {
   const id=String(lessonId);
-  if(!/^(4[1-9]|50|review|cumulative)$/.test(id)) {
+  if(!/^(4[1-6]|review|cumulative)$/.test(id)) {
     throw new Error('Unknown Chapter 5 lesson');
   }
   return 'math6-ch5-'+(/^[0-9]+$/.test(id)?'lesson'+id:id);
