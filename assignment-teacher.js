@@ -1,13 +1,12 @@
-// Development only: teacher workflow for reviewing and returning work.
-// Caller supplies initialized Firebase Auth and Firestore instances.
-// All permissions are enforced separately by deployed Firestore rules.
+// Development branch only. Requires deployed Firestore authorization rules.
 import {
   doc, getDoc, getDocs, collection, query, orderBy,
-  updateDoc, setDoc, serverTimestamp
+  runTransaction, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
 function stateRef(db,studentUid,assignmentId) {
-  if(!/^[A-Za-z0-9_-]{1,90}$/.test(assignmentId) || !studentUid) {
+  if(typeof studentUid!=='string' || !/^[A-Za-z0-9_-]{1,128}$/.test(studentUid)
+    || typeof assignmentId!=='string' || !/^[A-Za-z0-9_-]{1,90}$/.test(assignmentId)) {
     throw new Error('Invalid assignment reference');
   }
   return doc(db,'assignmentStates',studentUid+'_'+assignmentId);
@@ -33,24 +32,30 @@ export async function gradeAssignment({auth,db,studentUid,assignmentId,score,max
     throw new Error('Invalid grade');
   }
   const ref=stateRef(db,studentUid,assignmentId);
-  const snap=await getDoc(ref);
-  if(!snap.exists() || snap.data().status!=='submitted') {
-    throw new Error('Assignment must be submitted before grading');
-  }
-  const attempt=snap.data().currentAttempt;
-  await setDoc(doc(ref,'feedback','attempt_'+attempt),{
-    attemptNumber:attempt,score,maxScore,comments:String(comments||''),
-    graderUid:teacher.uid,gradedAt:serverTimestamp()
+  return runTransaction(db,async tx=>{
+    const snap=await tx.get(ref);
+    if(!snap.exists() || snap.data().status!=='submitted') {
+      throw new Error('Assignment must be submitted before grading');
+    }
+    const attempt=snap.data().currentAttempt;
+    tx.set(doc(ref,'feedback','attempt_'+attempt),{
+      attemptNumber:attempt,score,maxScore,comments:String(comments||''),
+      graderUid:teacher.uid,gradedAt:serverTimestamp()
+    });
+    tx.update(ref,{status:'graded',updatedAt:serverTimestamp()});
+    return {status:'graded',attempt};
   });
-  await updateDoc(ref,{status:'graded',updatedAt:serverTimestamp()});
 }
 
 export async function returnForCorrections({auth,db,studentUid,assignmentId}) {
   if(!auth.currentUser) throw new Error('Teacher sign-in required');
   const ref=stateRef(db,studentUid,assignmentId);
-  const snap=await getDoc(ref);
-  if(!snap.exists() || !['submitted','graded'].includes(snap.data().status)) {
-    throw new Error('Only submitted or graded work can be returned');
-  }
-  await updateDoc(ref,{status:'returned',updatedAt:serverTimestamp()});
+  return runTransaction(db,async tx=>{
+    const snap=await tx.get(ref);
+    if(!snap.exists() || !['submitted','graded'].includes(snap.data().status)) {
+      throw new Error('Only submitted or graded work can be returned');
+    }
+    tx.update(ref,{status:'returned',updatedAt:serverTimestamp()});
+    return {status:'returned',attempt:snap.data().currentAttempt};
+  });
 }
