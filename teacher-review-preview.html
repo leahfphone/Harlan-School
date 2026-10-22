@@ -34,8 +34,8 @@ async function load(){
       (a.responses||[]).forEach((r,i)=>{
         const item=document.createElement('div');item.style.margin='12px 0';
         const title=document.createElement('strong');title.textContent=(r.number||i+1)+'. '+(r.question||'');
-        const ans=document.createElement('p');ans.textContent='Answer: '+(r.answer||'(blank)');
-        const work=document.createElement('p');work.textContent='Work: '+(r.work||'(none)');
+        const ans=document.createElement('p');ans.textContent='Answer: '+(r.answer===null||r.answer===undefined||r.answer===''?'(blank)':String(r.answer));
+        const work=document.createElement('p');work.textContent='Work: '+(r.work===null||r.work===undefined||r.work===''?'(none)':String(r.work));
         item.append(title,ans,work);article.append(item);
       });
       const feedback=d.feedback.find(f=>f.attemptNumber===a.attemptNumber);
