@@ -23,6 +23,7 @@ service cloud.firestore {
         && request.resource.data.submittedAt == request.time;
 
       allow read: if isTeacher();
+      allow get: if request.auth != null && submissionId == 'math2_' + request.auth.uid;
       allow create: if request.auth != null
         && request.auth.token.firebase.sign_in_provider == 'anonymous'
         && (submissionId == request.auth.uid
