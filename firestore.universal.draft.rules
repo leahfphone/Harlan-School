@@ -98,7 +98,10 @@ service cloud.firestore {
         && assignmentAvailable(request.resource.data.assignmentId)
         && request.resource.data.status == 'submitted'
         && request.resource.data.currentAttempt == 1
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/1)
+        && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/1).data.studentUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)/attempts/1).data.assignmentId == request.resource.data.assignmentId;
       allow update: if teacher() || (
         signedIn()
         && student(request.auth.uid)
