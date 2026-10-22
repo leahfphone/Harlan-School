@@ -1,13 +1,20 @@
 import {validateResponses} from './response-payload.js';
 import {auth,db} from './firebase-client.js';
+import {signInAnonymously} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {studentAccessMode} from './student-access.js';
 import {loadAssignmentWork,saveAssignmentDraft} from './assignment-submission.js';
 import {readBackup,writeBackup,removeBackup} from './device-backup.js';
 export async function createLessonDraftStore({chapter,lessonId,questions}) {
  await auth.authStateReady();
- const user=auth.currentUser,uid=user?.uid||null,durable=!!user&&!user.isAnonymous;
+ // Reuse the existing browser identity; no email/password or sign-in screen.
+ if(!auth.currentUser)await signInAnonymously(auth);
+ const user=auth.currentUser,uid=user.uid;
+ let accessError=null,mode;
+ try{mode=await studentAccessMode({auth,db});}catch(e){accessError=e;}
+ const durable=mode==='assigned';
  const assignmentId='math6-ch'+chapter+'-'+(/^\d+$/.test(lessonId)?'lesson'+lessonId:lessonId);
- // Legacy anonymous drafts retain their original device key. Durable accounts
- // never read that key or another account's work.
+ // Approved browser sessions and durable accounts isolate backups by UID.
+ // Unenrolled legacy work keeps its existing device key.
  const key=durable?'harlan-'+uid+'-ch'+chapter+'-'+lessonId:'harlan-ch'+chapter+'-'+lessonId;
  let closed=false,timer=null,pending=Promise.resolve();
  function sameUser(){return (auth.currentUser?.uid||null)===uid;}
@@ -17,6 +24,7 @@ export async function createLessonDraftStore({chapter,lessonId,questions}) {
   await saveAssignmentDraft({auth,db,assignmentId,responses:asResponses(value)});
  }
  return {
+  accountSaved:durable,
   async read(){
    let local=readBackup(key)||{};
    try{validateResponses(asResponses(local));}catch{local={};}
@@ -38,6 +46,7 @@ export async function createLessonDraftStore({chapter,lessonId,questions}) {
   async flush(value){
    clearTimeout(timer);const local=writeBackup(key,value);await pending;
    if(closed||!sameUser())throw new Error('Sign-in changed. Reload this lesson.');
+   if(accessError)throw accessError;
    if(durable)await persist(value);
    else if(!local)throw new Error('Device storage is unavailable.');
   },

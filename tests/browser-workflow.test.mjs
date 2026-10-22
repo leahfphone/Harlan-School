@@ -132,6 +132,28 @@ try{
  await teacher.locator('#load').click();await text(teacher,'summary','Current attempt: 3');assert.equal(await teacher.locator('#attempts article').count(),3);
  await legacy.goto(base+'/math-chapter-4-activity.html?lesson=31');await legacy.locator('#submit').click();await text(legacy,'status','Submitted successfully to teacher dashboard');
  console.log('PASS actual Math Chapter 4 page supports durable corrections and preserves anonymous delivery');
+ // Approve the existing browser identity, then use the actual lesson with no sign-in UI.
+ const existingUid=await legacy.evaluate(async()=>{const {auth}=await import('/firebase-client.js');return auth.currentUser.uid;});
+ await env.withSecurityRulesDisabled(async ctx=>{
+  const db=ctx.firestore();await setDoc(doc(db,'studentAccess',existingUid),{active:true,allowAnonymous:true,displayName:'Existing browser student'});
+  await setDoc(doc(db,'assignmentAccess','math6-ch4-lesson31','students',existingUid),{active:true});
+ });
+ await legacy.reload();await legacy.getByLabel('Answer 1',{exact:true}).fill('First existing-browser answer');
+ await legacy.locator('#save').click();await text(legacy,'status','to your account');
+ await legacy.reload();assert.equal(await legacy.getByLabel('Answer 1',{exact:true}).inputValue(),'First existing-browser answer');
+ await legacy.locator('#submit').click();await text(legacy,'status','Submitted successfully to teacher dashboard');
+ await teacher.locator('#uid').fill(existingUid);await teacher.locator('#assignment').fill('math6-ch4-lesson31');await teacher.locator('#load').click();await text(teacher,'summary','Current attempt: 1');
+ await teacher.locator('#score').fill('7.5');await teacher.locator('#max').fill('10');await teacher.locator('#comments').fill('Browser-session partial credit');await teacher.locator('#grade').click();await text(teacher,'status','Grade saved');
+ await teacher.locator('#return').click();await text(teacher,'status','Returned for corrections');
+ await legacy.reload();assert.equal(await legacy.getByLabel('Answer 1',{exact:true}).inputValue(),'First existing-browser answer');
+ await legacy.getByLabel('Answer 1',{exact:true}).fill('Existing-browser correction');await legacy.locator('#submit').click();await text(legacy,'status','Submitted successfully to teacher dashboard');
+ await teacher.locator('#load').click();await text(teacher,'summary','Current attempt: 2');assert.equal(await teacher.locator('#attempts article').count(),2);await text(teacher,'attempts','7.5/10');
+ assert.equal(await legacy.evaluate(async()=>{const {auth}=await import('/firebase-client.js');return auth.currentUser.uid;}),existingUid);
+ assert.equal(await legacy.locator('input[type="password"]').count(),0);
+ await teacher.locator('#revoke').click();await text(teacher,'status','Assignment access revoked');
+ await legacy.reload();await text(legacy,'status','Submission is unavailable');assert.equal(await legacy.locator('#submit').isDisabled(),true);
+ await teacher.locator('#uid').fill(studentUid);
+ console.log('PASS existing browser access needs no login and supports saved drafts, partial credit, corrections, immutable history and revocation');
  async function protectedRead(page,collection){
   return page.evaluate(async collection=>{
    const {db}=await import('/firebase-client.js');

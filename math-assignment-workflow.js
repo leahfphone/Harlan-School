@@ -1,6 +1,7 @@
 // Shared classwork bridge: preserve legacy anonymous delivery while enabling
-// durable accounts, teacher grading, and correction attempts on both chapters.
+// approved browser sessions, teacher grading, and corrections on both chapters.
 import {readFlag} from './device-backup.js';
+import {studentAccessMode} from './student-access.js';
 import {auth,db} from './firebase-client.js';
 import {signInAnonymously,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {doc,getDoc,setDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -21,7 +22,7 @@ export async function configureMathSubmission({chapter,lessonId,lessonTitle,ques
    creatingAnonymous=!auth.currentUser;
    const user=auth.currentUser||(await signInAnonymously(auth)).user;
    creatingAnonymous=false;initialUid=user.uid;
-   if(user.isAnonymous){
+   if(await studentAccessMode({auth,db})==='legacy'){
     const responses=questions.map((question,i)=>({number:i+1,question,answer:inputs[i].value,work:notes[i].value,checks:histories[i]}));
     await setDoc(doc(db,'submissions','math'+chapter+'_'+lessonId+'_'+user.uid),{student:'Harlan',studentUid:user.uid,testTitle:'Math 6 Chapter '+chapter+' — '+lessonTitle,submittedAt:serverTimestamp(),responses});
    }else{
@@ -37,8 +38,9 @@ export async function configureMathSubmission({chapter,lessonId,lessonTitle,ques
   if(!adapter)throw new Error('Unknown math chapter');adapter.id(lessonId);
   await auth.authStateReady();initialUid=auth.currentUser?.uid||null;
   if(auth.currentUser){
-   delivered=readFlag(key(auth.currentUser.uid));
-   if(!auth.currentUser.isAnonymous){
+   const mode=await studentAccessMode({auth,db});
+   delivered=mode==='legacy'&&readFlag(key(auth.currentUser.uid));
+   if(mode==='assigned'){
     const assignment=await getDoc(doc(db,'assignments',adapter.id(lessonId)));
     if(!assignment.exists()||assignment.data().type!=='classwork')throw new Error('This lesson is unavailable for your account.');
     const info=await adapter.status({auth,db,lessonId});delivered=['submitted','graded'].includes(info.status);

@@ -14,6 +14,7 @@ async function helperUrl(file){
  const url='data:text/javascript;base64,'+Buffer.from(source).toString('base64');helperUrls.set(file,url);return url;
 }
 async function helper(file){return import(await helperUrl(file));}
+const {studentAccessMode}=await helper('student-access.js');
 const {encodeResponses,decodeResponses,validateResponses}=await helper('response-payload.js');
 const {submitAssignment,submissionStatus}=await helper('assignment-submission.js');
 const {gradeAssignment,returnForCorrections,loadTeacherReview}=await helper('assignment-teacher.js');
@@ -299,4 +300,58 @@ test('returned work can prefill a correction without modifying its original atte
  await returned();const work=await loadAssignmentWork(student);
  assert.equal(work.source,'returned');assert.equal(work.responses[0].answer,'42');
  assert.equal((await getDoc(doc(sref(),'attempts','1'))).data().responseCount,1);
+});
+
+
+test('approved existing anonymous browser supports grading/corrections but cannot self-enroll or cross identities',async()=>{
+ const anonymous={auth:{currentUser:{uid:'anonuid',isAnonymous:true}},db:adb,assignmentId:aid};
+ await assertFails(setDoc(doc(adb,'studentAccess','anonuid'),{active:true,allowAnonymous:true}));
+ await env.withSecurityRulesDisabled(async ctx=>{
+  const db=ctx.firestore();
+  await setDoc(doc(db,'studentAccess','anonuid'),{active:true});
+  await setDoc(doc(db,'assignmentAccess',aid,'students','anonuid'),{active:true});
+ });
+ await assertFails(rawAttempt(adb,'anonuid'));
+ await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'studentAccess','anonuid'),{active:true,allowAnonymous:true}));
+ assert.deepEqual(await submitAssignment({...anonymous,responses}),{status:'submitted',attempt:1});
+ const anonTeacher={...teacher,studentUid:'anonuid'};
+ await gradeAssignment({...anonTeacher,score:7.5,maxScore:10,comments:'Partial credit'});
+ await returnForCorrections(anonTeacher);
+ assert.deepEqual(await submitAssignment({...anonymous,responses:[{answer:'Corrected'}]}),{status:'submitted',attempt:2});
+ const review=await loadTeacherReview(anonTeacher);assert.equal(review.attempts.length,2);assert.equal(review.feedback[0].score,7.5);
+ await assertFails(getDoc(doc(sdb,'assignmentStates','anonuid_'+aid)));
+ await assertFails(updateDoc(doc(adb,'studentAccess','anonuid'),{allowAnonymous:true}));
+ await assertFails(setDoc(doc(adb,'teacherAccess','anonuid'),{active:true}));
+ await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'studentAccess','anonuid'),{active:false,allowAnonymous:true}));
+ await assertFails(getDoc(doc(adb,'assignmentStates','anonuid_'+aid)));
+ await assert.rejects(submissionStatus(anonymous));
+});
+
+test('approved anonymous browser still requires assessment release/membership and never reads answer keys',async()=>{
+ await env.withSecurityRulesDisabled(async ctx=>{
+  const db=ctx.firestore();await setDoc(doc(db,'studentAccess','anonuid'),{active:true,allowAnonymous:true});
+  await setDoc(doc(db,'assignmentAccess','secure-test','students','anonuid'),{active:true});
+ });
+ await assertFails(getDoc(doc(adb,'secureAssessmentContent','secure-test')));
+ await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'assessmentReleases','secure-test'),{released:true}));
+ await assertSucceeds(getDoc(doc(adb,'secureAssessmentContent','secure-test')));
+ await assertFails(getDoc(doc(adb,'assessmentAnswerKeys','secure-test')));
+ await assertFails(getDoc(doc(odb,'secureAssessmentContent','secure-test')));
+ await env.withSecurityRulesDisabled(ctx=>deleteDoc(doc(ctx.firestore(),'assignmentAccess','secure-test','students','anonuid')));
+ await assertFails(getDoc(doc(adb,'secureAssessmentContent','secure-test')));
+});
+
+
+test('existing-browser mode distinguishes absent enrollment from rejected approval without a legacy fallback',async()=>{
+ const session={auth:{currentUser:{uid:'anonuid',isAnonymous:true}},db:adb};
+ assert.equal(await studentAccessMode(session),'legacy');
+ for(const data of [{active:true},{active:true,allowAnonymous:'true'},{active:false,allowAnonymous:true}]){
+  await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'studentAccess','anonuid'),data));
+  await assert.rejects(studentAccessMode(session),/approve access/);
+ }
+ await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'studentAccess','anonuid'),{active:true,allowAnonymous:true}));
+ assert.equal(await studentAccessMode(session),'assigned');
+ await assertFails(getDoc(doc(odb,'studentAccess','anonuid')));
+ await assert.rejects(studentAccessMode({...session,db:udb}));
+ await assert.rejects(studentAccessMode({...session,auth:{currentUser:null}}),/session unavailable/);
 });

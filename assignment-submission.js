@@ -14,7 +14,7 @@ function validId(id) {
 
 export async function submissionStatus({auth,db,assignmentId}) {
   const user=auth.currentUser;
-  if(!user || user.isAnonymous) throw new Error('Student sign-in required');
+  if(!user) throw new Error('Student sign-in required');
   const ref=doc(db,'assignmentStates',user.uid+'_'+validId(assignmentId));
   const snapshot=await getDoc(ref);
   return snapshot.exists()
@@ -24,7 +24,7 @@ export async function submissionStatus({auth,db,assignmentId}) {
 
 export async function submitAssignment({auth,db,assignmentId,responses}) {
   const user=auth.currentUser;
-  if(!user || user.isAnonymous) throw new Error('Student sign-in required');
+  if(!user) throw new Error('Student sign-in required');
   validId(assignmentId);
   const payload=encodeResponses(responses);
   const assignment=await getDoc(doc(db,'assignments',assignmentId));
@@ -58,7 +58,7 @@ export async function submitAssignment({auth,db,assignmentId,responses}) {
 
 function draftReference({auth,db,assignmentId}) {
  const user=auth.currentUser;
- if(!user||user.isAnonymous)throw new Error('Student sign-in required');
+ if(!user)throw new Error('Student sign-in required');
  return doc(db,'assignmentStates',user.uid+'_'+validId(assignmentId),'drafts','current');
 }
 export async function saveAssignmentDraft({auth,db,assignmentId,responses}) {

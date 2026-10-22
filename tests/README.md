@@ -40,3 +40,8 @@ See docs/release-package.md for building the offline candidate from a clean comm
 
 
 WebKit native local-emulator stream cancellations are recorded and scoped to exact local Firestore RPC paths plus a matching navigation/sign-in transition within 1.5 seconds. Unexpected errors still fail; the suite does not globally ignore access-control errors. The event report is retained with screenshots. Physical-device and production acceptance remain separate gates.
+
+
+## Existing browser access
+
+The rules suite now has 37 tests. An explicitly enrolled anonymous browser uses active:true and allowAnonymous:true, plus assignment membership, without a new email/password. Tests cover the full partial-credit/correction flow, self-enrollment and teacher-escalation denial, cross-identity isolation, revocation, protected release/key isolation, and fail-closed enrollment-mode selection. The browser suite adds an actual Math Chapter 4 flow with no sign-in UI, draft reload, partial grading, returned work, resubmission and revocation.

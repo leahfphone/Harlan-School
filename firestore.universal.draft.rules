@@ -14,9 +14,10 @@ service cloud.firestore {
     }
     function student(uid) {
       return signedIn() && request.auth.uid == uid
-        && request.auth.token.firebase.sign_in_provider != 'anonymous'
         && exists(/databases/$(database)/documents/studentAccess/$(uid))
-        && get(/databases/$(database)/documents/studentAccess/$(uid)).data.active == true;
+        && get(/databases/$(database)/documents/studentAccess/$(uid)).data.active == true
+        && (request.auth.token.firebase.sign_in_provider != 'anonymous'
+          || get(/databases/$(database)/documents/studentAccess/$(uid)).data.get('allowAnonymous', false) == true);
     }
     function releaseEnabled(id) {
       return exists(/databases/$(database)/documents/assessmentReleases/$(id))
@@ -127,7 +128,7 @@ service cloud.firestore {
     }
 
     // New protected tests live separately from the legacy History collection.
-    // Only enrolled, non-anonymous students can read a released assessment.
+    // Only explicitly enrolled students can read a released assessment.
     // Questions and answer keys must be stored in separate documents;
     // answer keys must NEVER be student-readable.
     match /secureAssessmentContent/{assessmentId} {
@@ -143,7 +144,9 @@ service cloud.firestore {
     // The client cannot grant itself teacher or student privileges.
     match /teacherAccess/{uid} { allow read: if teacher(); allow write: if false; }
     match /studentAccess/{uid} {
-      allow read: if teacher() || student(uid);
+      // Own enrollment status is readable even before approval or after revocation.
+      allow get: if teacher() || (signedIn() && request.auth.uid == uid);
+      allow list: if teacher();
       allow write: if false;
     }
 

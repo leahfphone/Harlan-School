@@ -1,12 +1,12 @@
 {
   "score": 4,
-  "summary": "Core authorization and immutable grading pass 34 emulator tests. Cross-account draft isolation, optional device storage, and sign-out cleanup are browser-tested; live review and rollout require Firebase sign-in and explicit approval.",
+  "summary": "Core authorization and immutable grading pass 36 emulator tests, including explicitly enrolled anonymous browser sessions. Anonymous enrollment requires trusted-admin active:true and allowAnonymous:true, plus per-assignment grants; no new student login is required. Live deployment remains approval-gated.",
   "findings": [
     {
       "check": "Business Logic vs. Rules",
       "severity": "minor",
       "issue": "Legacy anonymous submissions preserve prior behavior and do not prove durable student identity; Canada Test 2 questions remain statically public.",
-      "recommendation": "Retain this explicit compatibility exception during rollout; use assigned durable identities and secure content collections for new protected assessments."
+      "recommendation": "Use explicit trusted-admin enrollment and per-assignment grants for new protected content. Anonymous browser credentials persist only in that browser; a replacement browser/device needs a newly approved enrollment. Keep Canada Test 2\u2019s existing public compatibility exception."
     },
     {
       "check": "Type Safety",

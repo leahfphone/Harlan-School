@@ -67,6 +67,9 @@ async function action(operation,message){
 $('grade').onclick=()=>action(target=>gradeAssignment({auth,db,...target,score:$('score').value.trim()===''?NaN:Number($('score').value),maxScore:$('max').value.trim()===''?NaN:Number($('max').value),comments:$('comments').value}),'Grade saved.');
 $('return').onclick=()=>{if(confirm('Return this assignment for corrections?'))action(target=>returnForCorrections({auth,db,...target}),'Returned for corrections.');};
 for(const [button,active] of [['grant',true],['revoke',false]])$(button).onclick=async()=>{
- try{await setAssignmentAccess({db,...ref(),active});say(active?'Assignment access granted.':'Assignment access revoked.');}
- catch(e){say('Access not changed: '+(e.code||e.message));}
+ if(busy)return;const target=ref(),version=generation;busy=true;
+ $('grant').disabled=$('revoke').disabled=true;say('Saving assignment access…');
+ try{await setAssignmentAccess({db,...target,active});if(version===generation)say(active?'Assignment access granted.':'Assignment access revoked.');}
+ catch(e){if(version===generation)say('Access not changed: '+(e.code||e.message));}
+ finally{busy=false;$('grant').disabled=$('revoke').disabled=false;}
 };
