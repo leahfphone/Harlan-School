@@ -186,6 +186,7 @@ service cloud.firestore {
           && request.resource.data.responses is list
           && request.resource.data.responses.size() > 0
           && request.resource.data.responses.size() <= 150
+          && (request.resource.data.assignmentId != 'math-ch2-test' || request.resource.data.responses.size() == 37)
           && request.resource.data.submittedAt == request.time
           && existsAfter(/databases/$(database)/documents/assignmentStates/$(stateId))
           && getAfter(/databases/$(database)/documents/assignmentStates/$(stateId)).data.studentUid == request.auth.uid
