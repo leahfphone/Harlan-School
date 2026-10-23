@@ -38,6 +38,7 @@ async function context(){
  await ctx.route(url=>!['127.0.0.1','localhost','www.gstatic.com'].includes(url.hostname),route=>{
   blocked.push(new URL(route.request().url()).origin);return route.abort();
  });
+ if(process.env.FIREBASE_SDK_CACHE){await ctx.route('https://www.gstatic.com/firebasejs/10.14.1/*.js',async route=>{const filename=new URL(route.request().url()).pathname.split('/').at(-1);assert.ok(['firebase-app.js','firebase-auth.js','firebase-firestore.js'].includes(filename));await route.fulfill({status:200,contentType:'text/javascript',body:await readFile(resolve(process.env.FIREBASE_SDK_CACHE,filename),'utf8'),headers:{'access-control-allow-origin':'*'}});});}
  await ctx.addInitScript(()=>document.addEventListener('click',e=>{if(e.target.id)console.log('acceptance-click:'+e.target.id);},true));
  ctx.on('page',page=>{
   const id=++pageCounter;
