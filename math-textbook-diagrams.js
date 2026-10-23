@@ -1,3 +1,4 @@
+let pictographId=0;
 const ns='http://www.w3.org/2000/svg';function svgEl(name,attrs={},content){const el=document.createElementNS(ns,name);for(const[k,v]of Object.entries(attrs))el.setAttribute(k,String(v));if(content!==undefined)el.textContent=content;return el;}
 export function diagram(d){
  const svg=svgEl('svg',{viewBox:'0 0 650 260',style:'font:19px Arial,sans-serif',role:'img','aria-label':diagramDescription(d)||d.title||'Textbook diagram'});svg.append(svgEl('title',{},d.title||'Textbook diagram'));
@@ -65,6 +66,14 @@ export function diagram(d){
   svg.setAttribute('viewBox','0 0 650 360');text(340,23,d.title);const y=v=>280-(v-44)*230/56;for(const tick of d.ticks){line(70,y(tick),620,y(tick));text(43,y(tick)+6,tick);}line(70,40,70,305);line(70,305,620,305);text(43,310,'0');svg.append(svgEl('path',{d:'M 63 294 l 14 -5 l -14 -5',fill:'none',stroke:'#17212b','stroke-width':2}));d.items.forEach((item,i)=>{const x=98+i*103;svg.append(svgEl('rect',{x,y:y(item.value),width:35,height:280-y(item.value),fill:'#1675a4'}));text(x+17,326,item.label);});text(340,355,d.xLabel);svg.append(svgEl('text',{x:17,y:180,transform:'rotate(-90 17 180)','text-anchor':'middle'},d.yLabel));
  }else if(d.type==='horizontalBars'){
   svg.setAttribute('viewBox','0 0 800 390');text(475,24,d.title);const x=v=>270+v*500/d.max;for(const tick of d.ticks){line(x(tick),45,x(tick),325);svg.append(svgEl('text',{x:x(tick),y:350,'text-anchor':'middle',style:'font-size:14px'},tick.toLocaleString('en-US')));}line(270,45,270,325);line(270,325,770,325);d.items.forEach((item,i)=>{const y=65+i*52;svg.append(svgEl('text',{x:255,y:y+19,'text-anchor':'end',style:'font-size:17px'},item.label));svg.append(svgEl('rect',{x:270,y,width:x(item.value)-270,height:24,fill:'#1675a4'}));});text(510,382,d.xLabel);svg.append(svgEl('text',{x:20,y:180,transform:'rotate(-90 20 180)','text-anchor':'middle'},d.yLabel));
+ }else if(d.type==='pictograph'){
+  const height=125+d.items.length*62;svg.setAttribute('viewBox',`0 0 850 ${height}`);svg.style.maxHeight='none';text(425,30,d.title);
+  d.items.forEach((item,i)=>{const y=72+i*62;svg.append(svgEl('text',{x:190,y:y+9,'text-anchor':'end'},item.label));
+   for(let j=0;j<Math.ceil(item.units);j++){const x=225+j*49,g=svgEl('g',{transform:`translate(${x} ${y})`}),half=j>=Math.floor(item.units),id='pictograph-'+(++pictographId);
+    const icon=fill=>{const group=svgEl('g',{fill,stroke:'#17212b','stroke-width':1.5});if(d.icon==='cone'){group.append(svgEl('polygon',{points:'-14,0 14,0 0,29'}),svgEl('path',{d:'M -16 0 C -22 -9 -13 -17 -6 -16 C -6 -27 12 -27 13 -15 C 25 -13 23 -2 16 0 Z'}));}else{const points=Array.from({length:10},(_,k)=>{const a=(-90+k*36)*Math.PI/180,r=k%2?9:22;return [Math.cos(a)*r,Math.sin(a)*r].join(',');}).join(' ');group.append(svgEl('polygon',{points}));}return group;};
+    g.append(icon('white'));const colored=icon(d.icon==='cone'?'#e9bf85':'#ffbd29');if(half){const clip=svgEl('clipPath',{id});clip.append(svgEl('rect',{x:-26,y:-30,width:26,height:64}));svg.append(clip);colored.setAttribute('clip-path',`url(#${id})`);}g.append(colored);svg.append(g);
+   }
+  });text(425,height-15,d.key);
  }else if(d.type==='barModel'){
   svg.append(svgEl('rect',{x:85,y:60,width:480,height:60,fill:'#d9edf8',stroke:'#17212b','stroke-width':2}));text(325,98,d.whole);d.parts.forEach((part,i)=>{const w=480/d.parts.length;svg.append(svgEl('rect',{x:85+i*w,y:120,width:w,height:60,fill:'white',stroke:'#17212b','stroke-width':2}));text(85+(i+.5)*w,158,part);});
  }else if(d.type==='grid'){
@@ -87,6 +96,7 @@ export function diagram(d){
 }
 export function diagramDescription(d){
  if(!d)return '';
+ if(d.type==='pictograph')return d.title+'. '+d.key+' Symbols shown: '+d.items.map(i=>i.label+' '+i.units).join('; ')+'.';
  if(d.type==='fractionProductModel')return `Starting model: ${d.cols} vertical parts with the first ${d.shadedCols} colored. Printed fraction above: ${d.top}; printed fraction at the left: ${d.left}. Complete the model.`;
  if(d.type==='geometry')return d.description||'Textbook geometric figure.';
  if(d.type==='coordinatePlane')return `Coordinate grid from ${d.min} to ${d.max} on each axis, with unit squares. Plotted points: `+d.points.map(p=>`${p.label}: ${p.x} on the horizontal axis, ${p.y} on the vertical axis`).join('; ')+'.';
@@ -100,7 +110,7 @@ export function diagramDescription(d){
  if(d.type==='train')return 'Train cars, in order: '+d.cars.map(c=>c.label+', '+c.length).join('; ')+'.';
  if(d.type==='modelChoices')return d.models.map((parts,i)=>String.fromCharCode(65+i)+': whole '+d.whole+'; parts '+parts.join(', ')).join('. ')+'.';
  if(d.type==='barGraph'||d.type==='horizontalBars')return d.title+'. Axes: '+d.xLabel+'; '+d.yLabel+'. Tick marks: '+d.ticks.join(', ')+'. Bar endpoints are approximately '+d.items.map(i=>i.label+' '+i.value).join('; ')+'.';
-if(d.type==='barModel')return `Bar model: whole ${d.whole}; equal parts labeled ${d.parts.join(', ')}.`;if(d.type==='grid')return `Rectangle with ${d.rows} row(s) and ${d.cols} columns; ${d.shaded.length} cells colored.`;
+if(d.type==='barModel')return `Bar model: whole ${d.whole}; parts labeled ${d.parts.join(', ')}.`;if(d.type==='grid')return `Rectangle with ${d.rows} row(s) and ${d.cols} columns; ${d.shaded.length} cells colored.`;
  if(d.type==='circles'||d.type==='triangleSet')return `${d.rows} row(s) of ${d.cols} ${d.type==='circles'?'circles':'triangles'}; ${d.shaded.length} colored.`;
  if(d.type==='sectors')return `${d.shape} divided into ${d.parts} equal parts; ${d.shaded.length} colored.`;
  if(d.type==='fractionLine')return `Number line from 0 to 1 with ${d.parts} equal intervals. `+Object.entries(d.labels||{}).map(([i,label])=>`Point ${label} is ${i} intervals after 0.`).join(' ')+(d.points||[]).map(i=>`The marked point is ${i} intervals after 0.`).join(' ');
