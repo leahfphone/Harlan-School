@@ -13,7 +13,7 @@ export function validateTeacherKey(data){
  }
  return out.length?out:null;
 }
-const norm=value=>String(value??'').normalize('NFKC').trim().replace(/\\s+/g,' ').toLocaleLowerCase('en');
+const norm=value=>String(value??'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase('en');
 export function checkTeacherAnswer(question,key){
  const entry=key?.find(item=>item.number===question.number);
  if(!entry)return {status:'not-checked'};
