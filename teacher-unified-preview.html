@@ -52,6 +52,7 @@ async function show(r){
  if(r.assignmentId){try{const snap=await getDoc(doc(db,'teacherAnswerKeys',r.assignmentId));if(version!==reportVersion)return;if(snap.exists()){const d=snap.data();key=validateTeacherKey(d);if(!key)note.textContent='Teacher answer key exists, but it does not pass validation.';}else note.textContent='No verified teacher answer key is available for this assignment.';}catch(e){if(version!==reportVersion)return;note.textContent='Teacher answer key unavailable ('+(e.code||'access restricted')+').'}}else note.textContent='This older submission has no linked assignment ID for a protected answer key.';
  if(key)note.textContent='Verified-format teacher answer key loaded.';
  if(!responses.length){box.append(el('p','No answers were found in this submission.'));return}
+ const summary=el('p','');summary.id='answerSummary';box.append(summary);const counts={correct:0,incorrect:0,'teacher-review':0,'not-checked':0};
  for(const [i,q] of responses.entries()){
   const article=el('article','');article.append(el('strong',(q.number??i+1)+'. '+(q.question||'Question text unavailable')));
   article.append(el('p','Harlan’s answer: '+(q.answer==null||q.answer===''?'(No answer)':q.answer)));
@@ -60,12 +61,13 @@ async function show(r){
    article.append(el('p','Work checks: '+q.checks.length));
    for(const [j,check] of q.checks.entries())article.append(el('p','Attempt '+(j+1)+': '+(check.answer||'(No answer)')+' — '+(check.correct?'correct':'needs retry')));
   }
-  const result=checkTeacherAnswer({number:Number(q.number??i+1),answer:q.answer},key);
+  const result=checkTeacherAnswer({number:Number(q.number??i+1),answer:q.answer},key);counts[result.status]++;
   const labels={correct:'Correct (verified answer key)',incorrect:'Incorrect (verified answer key)','teacher-review':'Teacher review needed','not-checked':'Not checked — verified answer key not connected'};
   article.append(el('p','Answer status: '+labels[result.status]));
   if(result.status==='incorrect')article.append(el('p','Correct answer: '+result.correctAnswer));
   box.append(article)
  }
+ summary.textContent='Answer check summary: '+counts.correct+' correct · '+counts.incorrect+' incorrect · '+counts['teacher-review']+' need teacher review · '+counts['not-checked']+' not checked.';
 
 }
 $('signin').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value)}catch(e){$('status').textContent='Sign-in failed: '+(e.code||e.message)}};
