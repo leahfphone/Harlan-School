@@ -11,6 +11,7 @@
 </main><script type="module">
 import {auth,db} from './firebase-client.js';
 import {decodeResponses} from './response-payload.js';
+import {validateTeacherKey,checkTeacherAnswer} from './teacher-answer-check.js';
 import {onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {collection,doc,getDoc,getDocs,query,orderBy} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const $=id=>document.getElementById(id), el=(tag,text)=>{const e=document.createElement(tag);e.textContent=String(text??'');return e};
@@ -48,7 +49,7 @@ async function show(r){
  else{const decoded=decodeResponses(r.raw||{});if(decoded.responseError){box.append(el('p','Unable to decode this saved attempt: '+decoded.responseError));return}responses=decoded.responses}
  const note=el('p','Checking for a protected teacher answer key…');box.append(note);
  let key=null;
- if(r.assignmentId){try{const snap=await getDoc(doc(db,'teacherAnswerKeys',r.assignmentId));if(version!==reportVersion)return;if(snap.exists()){const d=snap.data();if(d.schemaVersion==='teacher-key-v1'&&Array.isArray(d.questions))key=d.questions;else note.textContent='Teacher answer key exists, but its format has not been verified.';}else note.textContent='No verified teacher answer key is available for this assignment.';}catch(e){if(version!==reportVersion)return;note.textContent='Teacher answer key unavailable ('+(e.code||'access restricted')+').'}}else note.textContent='This older submission has no linked assignment ID for a protected answer key.';
+ if(r.assignmentId){try{const snap=await getDoc(doc(db,'teacherAnswerKeys',r.assignmentId));if(version!==reportVersion)return;if(snap.exists()){const d=snap.data();key=validateTeacherKey(d);if(!key)note.textContent='Teacher answer key exists, but it does not pass validation.';}else note.textContent='No verified teacher answer key is available for this assignment.';}catch(e){if(version!==reportVersion)return;note.textContent='Teacher answer key unavailable ('+(e.code||'access restricted')+').'}}else note.textContent='This older submission has no linked assignment ID for a protected answer key.';
  if(key)note.textContent='Verified-format teacher answer key loaded.';
  if(!responses.length){box.append(el('p','No answers were found in this submission.'));return}
  for(const [i,q] of responses.entries()){
@@ -59,16 +60,10 @@ async function show(r){
    article.append(el('p','Work checks: '+q.checks.length));
    for(const [j,check] of q.checks.entries())article.append(el('p','Attempt '+(j+1)+': '+(check.answer||'(No answer)')+' — '+(check.correct?'correct':'needs retry')));
   }
-  const match=key?.find(x=>x&&Number.isInteger(x.number)&&x.number===Number(q.number??i+1));
-  const expected=match?.correctAnswer;
-  const normalized=v=>String(v??'').trim().replace(/\\s+/g,' ').toLowerCase();
-  let status='Not checked — no supported verified answer key';
-  if(match&&typeof expected==='string'&&expected.trim()&&['multiple-choice','exact'].includes(String(match.type||'').toLowerCase())){
-   const actual=normalized(q.answer),correct=normalized(expected);
-   status=actual===correct?'Correct (verified answer key)':'Incorrect (verified answer key)';
-   if(actual!==correct)article.append(el('p','Correct answer: '+expected));
-  }else if(match)status='Teacher review needed — answer format is not automatically checkable';
-  article.append(el('p','Answer status: '+status));
+  const result=checkTeacherAnswer({number:Number(q.number??i+1),answer:q.answer},key);
+  const labels={correct:'Correct (verified answer key)',incorrect:'Incorrect (verified answer key)','teacher-review':'Teacher review needed','not-checked':'Not checked — verified answer key not connected'};
+  article.append(el('p','Answer status: '+labels[result.status]));
+  if(result.status==='incorrect')article.append(el('p','Correct answer: '+result.correctAnswer));
   box.append(article)
  }
 
