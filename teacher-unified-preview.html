@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Unified Teacher Submissions — Preview</title>
-<style>body{font:17px/1.5 system-ui,Arial,sans-serif;background:#f3f6fa;color:#183047;margin:0}main{max-width:940px;margin:auto;padding:24px} #categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}#categories button{min-height:84px;font-size:20px;font-weight:650}#breadcrumbs button{background:#526d81}section{background:white;border:1px solid #c8d5e2;border-radius:14px;padding:20px;margin:16px 0}button,input,select{font:inherit;padding:10px;margin:4px;border-radius:7px}button{background:#155781;color:white;border:0;cursor:pointer}button:disabled{opacity:.5}label{display:block;margin:10px 0}.item{display:block;width:100%;text-align:left;margin:8px 0}.muted{color:#53687a}.warn{color:#a13c14}article{padding:12px 0;border-top:1px solid #ddd;white-space:pre-wrap}#detail{overflow-wrap:anywhere}#responses article p{margin:8px 0}#responses article strong{display:block}#gradeItems article{padding:20px 0}#gradeItems article strong{display:block;margin-bottom:12px;font-size:1.08rem}#gradeItems label{display:inline-flex;align-items:center;gap:10px;margin:6px 18px 12px 0}#gradeItems textarea{margin:8px 0 16px;box-sizing:border-box;max-width:100%}#gradeItems input{box-sizing:border-box}#gradeItems .studentAnswer{padding:10px 12px;background:#f2f6fa;border-left:3px solid #155781;margin:8px 0 16px}#grading{margin-top:28px;border-top:2px solid #c8d5e2;padding-top:12px}@media print{#login,#list,#status,#back,#print,main>.muted{display:none!important}body{background:white}#detail{border:0;padding:0}}</style></head>
-<body><main><h1>Harlan — Unified Teacher Review</h1><p class="muted">READ-ONLY LIVE PREVIEW · The existing teacher dashboard remains unchanged.</p>
+<title>Harlan — Teacher Submission Reports</title>
+<style>body{font:17px/1.5 system-ui,Arial,sans-serif;background:#f3f6fa;color:#183047;margin:0}main{max-width:940px;margin:auto;padding:24px} #categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}#categories button{min-height:84px;font-size:20px;font-weight:650}#breadcrumbs button{background:#526d81}section{background:white;border:1px solid #c8d5e2;border-radius:14px;padding:20px;margin:16px 0}button,input,select{font:inherit;padding:10px;margin:4px;border-radius:7px}button{background:#155781;color:white;border:0;cursor:pointer}button:disabled{opacity:.5}label{display:block;margin:10px 0}.item{display:block;width:100%;text-align:left;margin:8px 0}.muted{color:#53687a}.warn{color:#a13c14}article{padding:12px 0;border-top:1px solid #ddd;white-space:pre-wrap}#detail{overflow-wrap:anywhere}#responses article p{margin:8px 0}#responses article strong{display:block}@media print{#login,#list,#status,#back,#print,main>.muted{display:none!important}body{background:white}#detail{border:0;padding:0}}</style></head>
+<body><main><h1>Harlan — Teacher Submission Reports</h1><p class="muted">READ-ONLY TEACHER REPORTS · View Harlan’s submitted answers and print a report.</p>
 <section id="login"><h2>Teacher sign-in</h2><label>Email <input id="email" type="email" autocomplete="username"></label><label>Password <input id="password" type="password" autocomplete="current-password"></label><button id="signin">Sign in</button></section>
 <p id="status" role="status">Checking teacher sign-in…</p>
 <section id="list" hidden><h2 id="browseTitle">Choose a subject</h2><div id="breadcrumbs"></div><div id="categories"></div><div id="recordControls" hidden><button id="refresh">Refresh submissions</button><button id="signout">Sign out</button><p id="count"></p><div id="items"></div></div></section>
-<section id="detail" hidden><button id="back">Back to submissions</button><button id="print" type="button">Print student answers</button><div id="responses"></div><div id="grading" hidden><h3>Teacher grading practice</h3><p class="warn"><strong>Practice only:</strong> These scores and comments are not saved, sent to students, or entered into the gradebook. They will disappear when you leave or refresh this page.</p><div id="gradeItems"></div><label>Overall teacher comment <textarea id="overallComment" rows="3" style="display:block;width:95%;font:inherit"></textarea></label><p id="gradeSummary"></p><button id="printReview" type="button">Print practice review</button></div></section>
+<section id="detail" hidden><button id="back">Back to submissions</button><button id="print" type="button">Print student answers</button><div id="responses"></div></section>
 <p class="muted"><a href="teacher-dashboard.html">Return to existing teacher dashboard</a></p>
 </main><script type="module">
 import {auth,db} from './firebase-client.js';
@@ -14,7 +14,7 @@ import {decodeResponses} from './response-payload.js';
 import {onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {collection,doc,getDoc,getDocs,query,orderBy} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const $=id=>document.getElementById(id), el=(tag,text)=>{const e=document.createElement(tag);e.textContent=String(text??'');return e};
-let currentReview=null;let records=[];let selectedSubject=null;let selectedType=null;const SUBJECTS=[["Language","book-open"],["History","globe"],["Math","calculator"],["Science","flask"],["Bible","book"]];
+let records=[];let selectedSubject=null;let selectedType=null;const SUBJECTS=[["Language","book-open"],["History","globe"],["Math","calculator"],["Science","flask"],["Bible","book"]];
 const subjectOf=s=>/math/i.test(s)?'Math':/canada|history|geography/i.test(s)?'History':'Other';
 
 function navButton(label,fn){const b=el('button',label);b.onclick=fn;return b}
@@ -45,35 +45,23 @@ function show(r){
  let responses=[];
  if(r.source==='Older format'){responses=Array.isArray(r.responses)?r.responses:[]}
  else{const decoded=decodeResponses(r.raw||{});if(decoded.responseError){box.append(el('p','Unable to decode this saved attempt: '+decoded.responseError));return}responses=decoded.responses}
- box.append(el('p','Saved answers: '+responses.length+'. This is a read-only record, not an automatically graded result.'));
- if(!responses.length){box.append(el('p','No answers were found in this submission.'));$('grading').hidden=true;return}
+ box.append(el('p','Questions and saved answers: '+responses.length+'. Correctness is shown only when a recorded check is available; otherwise marked Not checked.'));
+ if(!responses.length){box.append(el('p','No answers were found in this submission.'));return}
  for(const [i,q] of responses.entries()){
   const article=el('article','');article.append(el('strong',(q.number??i+1)+'. '+(q.question||'Question text unavailable')));
-  article.append(el('p','Answer: '+(q.answer==null||q.answer===''?'(No answer)':q.answer)));
+  article.append(el('p','Harlan’s answer: '+(q.answer==null||q.answer===''?'(No answer)':q.answer)));
   if(q.work)article.append(el('p','Shown work: '+q.work));
   if(Array.isArray(q.checks)&&q.checks.length){
    article.append(el('p','Work checks: '+q.checks.length));
    for(const [j,check] of q.checks.entries())article.append(el('p','Attempt '+(j+1)+': '+(check.answer||'(No answer)')+' — '+(check.correct?'correct':'needs retry')));
   }
+  const checks=Array.isArray(q.checks)?q.checks:[];const last=checks.length?checks[checks.length-1]:null;
+  article.append(el('p','Answer status: '+(last?(last.correct===true?'Correct (recorded check)':last.correct===false?'Incorrect (recorded check)':'Not checked'):'Not checked — verified answer key not connected')));
   box.append(article)
  }
- setupPracticeReview(r,responses);
-}
-function setupPracticeReview(record,responses){
- const area=$('grading'),items=$('gradeItems');area.hidden=false;items.replaceChildren();$('overallComment').value=''currentReview={record,responses,rows:[]};
- const recalc=()=>{let earned=0,possible=0;for(const row of currentReview.rows){const max=Number(row.max.value),points=row.points.value.trim()===''?NaN:Number(row.points.value);if(!Number.isFinite(max)||max<=0||!Number.isFinite(points)||points<0||points>max){$('gradeSummary').textContent='Please enter valid points (between 0 and the maximum for each question).';return}earned+=points;possible+=max}const pct=possible?Math.round(earned/possible*1000)/10:0;$('gradeSummary').textContent='Practice total: '+earned+' / '+possible+' points ('+pct+'%). NOT SAVED.'};
- for(const [i,q] of responses.entries()){
-  const section=el('article','');section.append(el('strong','Question '+(q.number??i+1)+': '+(q.question||'Question text unavailable')));const answer=el('p','Student answer: '+(q.answer==null||q.answer===''?'(No answer)':q.answer));answer.className='studentAnswer';section.append(answer);
-  const max=document.createElement('input');max.type='number';max.min='0.5';max.step='0.25';max.value='1';max.setAttribute('aria-label','Maximum points for question '+(i+1));max.style.width='75px';
-  const points=document.createElement('input');points.type='number';points.min='0';points.step='0.25';points.value='';points.placeholder='0–1';points.setAttribute('aria-label','Points earned for question '+(i+1));points.style.width='75px';
-  const comment=document.createElement('textarea');comment.rows=2;comment.placeholder='Teacher comment (optional)';comment.setAttribute('aria-label','Comment for question '+(i+1));comment.style.cssText='display:block;width:95%;font:inherit';
-  const maxLabel=el('label','Possible points: ');maxLabel.append(max);const pointLabel=el('label','Points earned: ');pointLabel.append(points);
-  const fields=document.createElement('div');fields.append(maxLabel,pointLabel);section.append(fields,comment);items.append(section);currentReview.rows.push({max,points,comment});max.oninput=recalc;points.oninput=recalc;
- }
- $('gradeSummary').textContent='Enter points for each question to calculate a practice score. No grade will be saved.';
-}
 
+}
 $('signin').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value)}catch(e){$('status').textContent='Sign-in failed: '+(e.code||e.message)}};
-$('signout').onclick=()=>signOut(auth);$('print').onclick=()=>window.print();$('printReview').onclick=()=>window.print();$('refresh').onclick=load;$('back').onclick=()=>{$('detail').hidden=true;$('list').hidden=false};
+$('signout').onclick=()=>signOut(auth);$('print').onclick=()=>window.print();$('refresh').onclick=load;$('back').onclick=()=>{$('detail').hidden=true;$('list').hidden=false};
 onAuthStateChanged(auth,async user=>{$('login').hidden=!!user;$('list').hidden=!user;$('detail').hidden=true;if(user)await load();else $('status').textContent='Sign in with an authorized teacher account.'});
 </script></body></html>
