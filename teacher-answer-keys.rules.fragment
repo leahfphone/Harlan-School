@@ -1,0 +1,33 @@
+// ADDITIVE FIRESTORE RULES FRAGMENT — NOT A COMPLETE firestore.rules FILE.
+// IMPORTANT: Merge into the currently DEPLOYED rules inside
+// match /databases/{database}/documents { ... }.
+// DO NOT replace production rules with the repository's older firestore.rules.
+// Uses existing production isTeacher() only if it checks a verified, authorized
+// teacher identity. Do not use broad request.auth != null authorization.
+//
+// match /teacherAnswerKeys/{assignmentId} {
+//   allow get, list: if isTeacher();
+//   allow create, update, delete: if false;
+// }
+//
+// Provision teacher answer-key documents using a trusted admin environment
+// after reviewing the original teacher key; never from student JavaScript.
+// Expected document: teacherAnswerKeys/{assignmentId}
+// {
+//   schemaVersion: 'teacher-key-v1',
+//   questions: [
+//     { number: 1, type: 'exact', correctAnswer: '6', acceptedAnswers: [] },
+//     { number: 2, type: 'manual' }
+//   ]
+// }
+//
+// Deployment checklist:
+// 1. Back up/export current deployed Firestore rules (not GitHub's stale copy).
+// 2. Merge only this match block into those rules.
+// 3. Test Firebase emulator: verified teacher can get a key; anonymous student,
+//    unverified teacher, and unrelated signed-in users cannot get/list keys.
+// 4. Verify all existing submissions, assignmentStates, attempts, releases,
+//    and teacher dashboard operations still work with the merged rules.
+// 5. Only then deploy; no public answer keys and no test releases.
+// 6. Populate real keys from verified source material separately.
+// This fragment is documentation only; it is not automatically deployed.
