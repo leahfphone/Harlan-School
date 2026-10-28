@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Harlan — Teacher Submission Reports</title>
-<style>body{font:17px/1.5 system-ui,Arial,sans-serif;background:#f3f6fa;color:#183047;margin:0}main{max-width:940px;margin:auto;padding:24px} #categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}#categories button{min-height:84px;font-size:20px;font-weight:650}#breadcrumbs button{background:#526d81}section{background:white;border:1px solid #c8d5e2;border-radius:14px;padding:20px;margin:16px 0}button,input,select{font:inherit;padding:10px;margin:4px;border-radius:7px}button{background:#155781;color:white;border:0;cursor:pointer}button:disabled{opacity:.5}label{display:block;margin:10px 0}.item{display:block;width:100%;text-align:left;margin:8px 0}.muted{color:#53687a}.warn{color:#a13c14}article{padding:12px 0;border-top:1px solid #ddd;white-space:pre-wrap}#detail{overflow-wrap:anywhere}#responses article p{margin:8px 0}#responses article strong{display:block}@media print{#login,#list,#status,#back,#print,main>.muted{display:none!important}body{background:white}#detail{border:0;padding:0}}</style></head>
+<style>body{font:17px/1.5 system-ui,Arial,sans-serif;background:#f3f6fa;color:#183047;margin:0}main{max-width:940px;margin:auto;padding:24px} #categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}#categories button{min-height:84px;font-size:20px;font-weight:650}#breadcrumbs button{background:#526d81}section{background:white;border:1px solid #c8d5e2;border-radius:14px;padding:20px;margin:16px 0}button,input,select{font:inherit;padding:10px;margin:4px;border-radius:7px}button{background:#155781;color:white;border:0;cursor:pointer}button:disabled{opacity:.5}label{display:block;margin:10px 0}.item{display:block;width:100%;text-align:left;margin:8px 0}.muted{color:#53687a}.warn{color:#a13c14}article{padding:12px 0;border-top:1px solid #ddd;white-space:pre-wrap}#detail{overflow-wrap:anywhere}#responses article p{margin:8px 0}#responses article strong{display:block}#answerSummary{font-weight:700;padding:12px;background:#edf4f9;border-radius:8px}.answer-correct{border-left:5px solid #27764a;padding-left:14px}.answer-incorrect{border-left:5px solid #b13b32;padding-left:14px}.answer-unchecked{border-left:5px solid #8a98a7;padding-left:14px}@media print{#login,#list,#status,#back,#print,main>.muted{display:none!important}body{background:white}#detail{border:0;padding:0}}</style></head>
 <body><main><h1>Harlan — Teacher Submission Reports</h1><p class="muted">READ-ONLY TEACHER REPORTS · View Harlan’s submitted answers and print a report.</p>
 <section id="login"><h2>Teacher sign-in</h2><label>Email <input id="email" type="email" autocomplete="username"></label><label>Password <input id="password" type="password" autocomplete="current-password"></label><button id="signin">Sign in</button></section>
 <p id="status" role="status">Checking teacher sign-in…</p>
@@ -43,7 +43,7 @@ records.sort((a,b)=>(b.date?.getTime?.()||0)-(a.date?.getTime?.()||0));updateFil
 async function show(r){
  const version=++reportVersion;
  $('list').hidden=true;$('detail').hidden=false;
- const box=$('responses');box.replaceChildren(el('h2',r.title),el('p',r.student+' · '+r.source+' · '+(r.date?.toLocaleString?.()||'Date unavailable')));
+ const box=$('responses');box.replaceChildren(el('h2',r.title),el('p','Student reference: '+r.student+' · '+r.source+' · Submitted: '+(r.date?.toLocaleString?.()||'Date unavailable')));if(/sample|replaced/i.test(r.title))box.append(el('p','SAMPLE / REPLACED ASSIGNMENT — not a current lesson submission.'));
  let responses=[];
  if(r.source==='Older format'){responses=Array.isArray(r.responses)?r.responses:[]}
  else{const decoded=decodeResponses(r.raw||{});if(decoded.responseError){box.append(el('p','Unable to decode this saved attempt: '+decoded.responseError));return}responses=decoded.responses}
@@ -61,7 +61,7 @@ async function show(r){
    article.append(el('p','Work checks: '+q.checks.length));
    for(const [j,check] of q.checks.entries())article.append(el('p','Attempt '+(j+1)+': '+(check.answer||'(No answer)')+' — '+(check.correct?'correct':'needs retry')));
   }
-  const result=checkTeacherAnswer({number:Number(q.number??i+1),answer:q.answer},key);counts[result.status]++;
+  const result=checkTeacherAnswer({number:Number(q.number??i+1),answer:q.answer},key);counts[result.status]++;article.className=result.status==='correct'?'answer-correct':result.status==='incorrect'?'answer-incorrect':'answer-unchecked';
   const labels={correct:'Correct (verified answer key)',incorrect:'Incorrect (verified answer key)','teacher-review':'Teacher review needed','not-checked':'Not checked — verified answer key not connected'};
   article.append(el('p','Answer status: '+labels[result.status]));
   if(result.status==='incorrect')article.append(el('p','Correct answer: '+result.correctAnswer));
