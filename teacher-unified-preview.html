@@ -6,7 +6,7 @@
 <section id="login"><h2>Teacher sign-in</h2><label>Email <input id="email" type="email" autocomplete="username"></label><label>Password <input id="password" type="password" autocomplete="current-password"></label><button id="signin">Sign in</button></section>
 <p id="status" role="status">Checking teacher sign-in…</p>
 <section id="list" hidden><h2 id="browseTitle">Choose a subject</h2><div id="breadcrumbs"></div><div id="categories"></div><div id="recordControls" hidden><button id="refresh">Refresh submissions</button><button id="signout">Sign out</button><p id="count"></p><div id="items"></div></div></section>
-<section id="detail" hidden><button id="back">Back to submissions</button><button id="print" type="button">Print student answers</button><div id="responses"></div><div id="grading" hidden><h3>Teacher grading practice</h3><p class="warn"><strong>Practice only:</strong> These scores and comments are not saved, sent to students, or entered into the gradebook. They will disappear when you leave or refresh this page.</p><div id="gradeItems"></div><label>Overall teacher comment <textarea id="overallComment" rows="3" style="display:block;width:95%;font:inherit"></textarea></label><p id="gradeSummary"></p><button id="printReview" type="button">Print practice review</button><button id="downloadReview" type="button">Download practice review (JSON)</button><p id="exportStatus" role="status"></p></div></section>
+<section id="detail" hidden><button id="back">Back to submissions</button><button id="print" type="button">Print student answers</button><div id="responses"></div><div id="grading" hidden><h3>Teacher grading practice</h3><p class="warn"><strong>Practice only:</strong> These scores and comments are not saved, sent to students, or entered into the gradebook. They will disappear when you leave or refresh this page.</p><div id="gradeItems"></div><label>Overall teacher comment <textarea id="overallComment" rows="3" style="display:block;width:95%;font:inherit"></textarea></label><p id="gradeSummary"></p><button id="printReview" type="button">Print practice review</button></div></section>
 <p class="muted"><a href="teacher-dashboard.html">Return to existing teacher dashboard</a></p>
 </main><script type="module">
 import {auth,db} from './firebase-client.js';
@@ -59,20 +59,8 @@ function show(r){
  }
  setupPracticeReview(r,responses);
 }
-function exportPracticeReview(){
- if(!currentReview)return;
- const items=[];
- for(let i=0;i<currentReview.rows.length;i++){
-  const row=currentReview.rows[i],max=Number(row.max.value),raw=row.points.value.trim(),earned=raw===''?NaN:Number(raw);
-  if(!Number.isFinite(max)||max<=0||!Number.isFinite(earned)||earned<0||earned>max){$('exportStatus').textContent='Complete all point fields with valid scores before downloading.';return}
-  items.push({number:currentReview.responses[i].number??i+1,question:currentReview.responses[i].question,studentAnswer:currentReview.responses[i].answer,maxPoints:max,earnedPoints:earned,teacherComment:row.comment.value});
- }
- const total=items.reduce((sum,x)=>sum+x.earnedPoints,0),possible=items.reduce((sum,x)=>sum+x.maxPoints,0);
- const review={format:'harlan-teacher-practice-v1',practiceOnly:true,notSavedToFirebase:true,assignmentTitle:currentReview.record.title,studentReference:currentReview.record.student,submissionSource:currentReview.record.source,reviewedAt:new Date().toISOString(),questions:items,totalPoints:total,possiblePoints:possible,percent:Math.round(total/possible*1000)/10,overallTeacherComment:$('overallComment').value};
- const blob=new Blob([JSON.stringify(review,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='harlan-practice-review-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);$('exportStatus').textContent='Practice review downloaded to your computer. Nothing was sent to Firebase.';
-}
 function setupPracticeReview(record,responses){
- const area=$('grading'),items=$('gradeItems');area.hidden=false;items.replaceChildren();$('overallComment').value='';$('exportStatus').textContent='';currentReview={record,responses,rows:[]};
+ const area=$('grading'),items=$('gradeItems');area.hidden=false;items.replaceChildren();$('overallComment').value=''currentReview={record,responses,rows:[]};
  const recalc=()=>{let earned=0,possible=0;for(const row of currentReview.rows){const max=Number(row.max.value),points=row.points.value.trim()===''?NaN:Number(row.points.value);if(!Number.isFinite(max)||max<=0||!Number.isFinite(points)||points<0||points>max){$('gradeSummary').textContent='Please enter valid points (between 0 and the maximum for each question).';return}earned+=points;possible+=max}const pct=possible?Math.round(earned/possible*1000)/10:0;$('gradeSummary').textContent='Practice total: '+earned+' / '+possible+' points ('+pct+'%). NOT SAVED.'};
  for(const [i,q] of responses.entries()){
   const section=el('article','');section.append(el('strong','Question '+(q.number??i+1)+': '+(q.question||'Question text unavailable')));const answer=el('p','Student answer: '+(q.answer==null||q.answer===''?'(No answer)':q.answer));answer.className='studentAnswer';section.append(answer);
@@ -86,6 +74,6 @@ function setupPracticeReview(record,responses){
 }
 
 $('signin').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value)}catch(e){$('status').textContent='Sign-in failed: '+(e.code||e.message)}};
-$('signout').onclick=()=>signOut(auth);$('print').onclick=()=>window.print();$('printReview').onclick=()=>window.print();$('downloadReview').onclick=exportPracticeReview;$('refresh').onclick=load;$('back').onclick=()=>{$('detail').hidden=true;$('list').hidden=false};
+$('signout').onclick=()=>signOut(auth);$('print').onclick=()=>window.print();$('printReview').onclick=()=>window.print();$('refresh').onclick=load;$('back').onclick=()=>{$('detail').hidden=true;$('list').hidden=false};
 onAuthStateChanged(auth,async user=>{$('login').hidden=!!user;$('list').hidden=!user;$('detail').hidden=true;if(user)await load();else $('status').textContent='Sign in with an authorized teacher account.'});
 </script></body></html>
