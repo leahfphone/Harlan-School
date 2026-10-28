@@ -15,20 +15,20 @@ import {validateTeacherKey,checkTeacherAnswer} from './teacher-answer-check.js';
 import {onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {collection,doc,getDoc,getDocs,query,orderBy} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const $=id=>document.getElementById(id), el=(tag,text)=>{const e=document.createElement(tag);e.textContent=String(text??'');return e};
-let records=[];let reportVersion=0;let selectedSubject=null;let selectedType=null;const SUBJECTS=[["Language","book-open"],["History","globe"],["Math","calculator"],["Science","flask"],["Bible","book"]];
+let records=[];let roster=new Map();let reportVersion=0;let selectedSubject=null;let selectedType=null;const SUBJECTS=[["Language","book-open"],["History","globe"],["Math","calculator"],["Science","flask"],["Bible","book"]];
 const subjectOf=s=>/math/i.test(s)?'Math':/canada|history|geography/i.test(s)?'History':'Other';
 
 function navButton(label,fn){const b=el('button',label);b.onclick=fn;return b}
 function draw(){
  const cats=$('categories'),crumb=$('breadcrumbs'),controls=$('recordControls');cats.replaceChildren();crumb.replaceChildren();
  if(!selectedSubject){$('browseTitle').textContent='Choose a subject';controls.hidden=true;
- for(const [name] of SUBJECTS){const count=records.filter(r=>r.subject===name).length;cats.append(navButton(name+'  ·  '+count+' submission'+(count===1?'':'s'),()=>{selectedSubject=name;selectedType=null;draw()}))}return}
+ for(const [name] of SUBJECTS){const count=records.filter(r=>r.subject===name&&!/sample|replaced/i.test(r.title)).length;cats.append(navButton(name+'  ·  '+count+' submission'+(count===1?'':'s'),()=>{selectedSubject=name;selectedType=null;draw()}))}return}
  crumb.append(navButton('All subjects',()=>{selectedSubject=null;selectedType=null;draw()}));
  $('browseTitle').textContent=selectedSubject;
- if(!selectedType){controls.hidden=true;for(const type of ['Classwork','Quizzes','Tests']){const count=records.filter(r=>r.subject===selectedSubject&&r.group===type).length;cats.append(navButton(type+'  ·  '+count,()=>{selectedType=type;draw()}))}return}
+ if(!selectedType){controls.hidden=true;for(const type of ['Classwork','Quizzes','Tests']){const count=records.filter(r=>r.subject===selectedSubject&&r.group===type&&!/sample|replaced/i.test(r.title)).length;cats.append(navButton(type+'  ·  '+count,()=>{selectedType=type;draw()}))}return}
  crumb.append(navButton(selectedSubject,()=>{selectedType=null;draw()}));
  $('browseTitle').textContent=selectedSubject+' — '+selectedType;controls.hidden=false;
- const list=records.filter(r=>r.subject===selectedSubject&&r.group===selectedType);
+ const list=records.filter(r=>r.subject===selectedSubject&&r.group===selectedType&&!/sample|replaced/i.test(r.title));
  $('count').textContent='Showing '+list.length+' submission'+(list.length===1?'':'s')+'.';
  $('items').replaceChildren();
  for(const r of list){const b=el('button',r.title+' · '+r.student+' · '+r.source);b.className='item';b.onclick=()=>show(r);$('items').append(b)}
@@ -36,14 +36,14 @@ function draw(){
 }
 function groupOf(r){const v=(r.kind+' '+r.title).toLowerCase();if(/test|exam|assessment/.test(v))return 'Tests';if(/quiz/.test(v))return 'Quizzes';return 'Classwork'}
 function updateFilters(){for(const r of records)r.group=groupOf(r)}
-async function load(){if(!auth.currentUser)return;$('refresh').disabled=true;$('status').textContent='Loading submissions…';const [legacy,modern]=await Promise.allSettled([getDocs(query(collection(db,'submissions'),orderBy('submittedAt','desc'))),getDocs(collection(db,'assignmentStates'))]);records=[];const issues=[];
+async function load(){if(!auth.currentUser)return;$('refresh').disabled=true;$('status').textContent='Loading submissions…';const [legacy,modern,students]=await Promise.allSettled([getDocs(query(collection(db,'submissions'),orderBy('submittedAt','desc'))),getDocs(collection(db,'assignmentStates')),getDocs(collection(db,'studentAccess'))]);roster=new Map();if(students.status==='fulfilled')students.value.forEach(s=>{const d=s.data();if(typeof d.displayName==='string'&&d.displayName.trim())roster.set(s.id,d.displayName.trim())});records=[];const issues=[];
 if(legacy.status==='fulfilled')legacy.value.forEach(s=>{const d=s.data();records.push({source:'Older format',kind:d.type||'Submission',subject:d.subject||subjectOf(d.testTitle||''),title:d.testTitle||'Assignment',assignmentId:d.assignmentId||null,student:d.student||'Student',responses:d.responses||[],date:d.submittedAt?.toDate?.()})});else issues.push('Older submissions: '+(legacy.reason?.code||legacy.reason?.message));
-if(modern.status==='fulfilled'){for(const state of modern.value.docs){const d=state.data();if(!d.assignmentId||!d.studentUid)continue;try{const [assignment,attempt]=await Promise.all([getDoc(doc(db,'assignments',d.assignmentId)),getDoc(doc(db,'assignmentStates',state.id,'attempts',String(d.currentAttempt||1)))]);if(!attempt.exists())continue;const a=assignment.exists()?assignment.data():{},data=attempt.data();records.push({source:'New format',kind:a.type||'Assessment',subject:a.subject||'Other',title:a.title||d.assignmentId,assignmentId:d.assignmentId,student:d.studentUid,responses:[],raw:data,date:data.submittedAt?.toDate?.()})}catch(e){issues.push('New attempt '+state.id+': '+(e.code||e.message))}}}else issues.push('New submissions: '+(modern.reason?.code||modern.reason?.message));
-records.sort((a,b)=>(b.date?.getTime?.()||0)-(a.date?.getTime?.()||0));updateFilters();draw();$('status').textContent='Loaded '+records.length+' records ('+records.filter(r=>r.source==='New format').length+' new; '+records.filter(r=>r.source==='Older format').length+' older).'+(issues.length?' Some data could not be read: '+issues.join('; '):'');$('refresh').disabled=false}
+if(modern.status==='fulfilled'){for(const state of modern.value.docs){const d=state.data();if(!d.assignmentId||!d.studentUid)continue;try{const [assignment,attempt]=await Promise.all([getDoc(doc(db,'assignments',d.assignmentId)),getDoc(doc(db,'assignmentStates',state.id,'attempts',String(d.currentAttempt||1)))]);if(!attempt.exists())continue;const a=assignment.exists()?assignment.data():{},data=attempt.data();records.push({source:'New format',kind:a.type||'Assessment',subject:a.subject||'Other',title:a.title||d.assignmentId,assignmentId:d.assignmentId,student:roster.get(d.studentUid)||'Student (name unavailable)',studentUid:d.studentUid,responses:[],raw:data,date:data.submittedAt?.toDate?.()})}catch(e){issues.push('New attempt '+state.id+': '+(e.code||e.message))}}}else issues.push('New submissions: '+(modern.reason?.code||modern.reason?.message));
+if(students.status==='rejected')issues.push('Student names unavailable; studentAccess read restricted.');records.sort((a,b)=>(b.date?.getTime?.()||0)-(a.date?.getTime?.()||0));updateFilters();draw();$('status').textContent='Loaded '+records.length+' records ('+records.filter(r=>r.source==='New format').length+' new; '+records.filter(r=>r.source==='Older format').length+' older).'+(issues.length?' Some data could not be read: '+issues.join('; '):'');$('refresh').disabled=false}
 async function show(r){
  const version=++reportVersion;
  $('list').hidden=true;$('detail').hidden=false;
- const box=$('responses');box.replaceChildren(el('h2',r.title),el('p','Student reference: '+r.student+' · '+r.source+' · Submitted: '+(r.date?.toLocaleString?.()||'Date unavailable')));if(/sample|replaced/i.test(r.title))box.append(el('p','SAMPLE / REPLACED ASSIGNMENT — not a current lesson submission.'));
+ const box=$('responses');box.replaceChildren(el('h2',r.title),el('p','Student: '+r.student+' · '+r.source+' · Submitted: '+(r.date?.toLocaleString?.()||'Date unavailable')));if(/sample|replaced/i.test(r.title))box.append(el('p','SAMPLE / REPLACED ASSIGNMENT — not a current lesson submission.'));
  let responses=[];
  if(r.source==='Older format'){responses=Array.isArray(r.responses)?r.responses:[]}
  else{const decoded=decodeResponses(r.raw||{});if(decoded.responseError){box.append(el('p','Unable to decode this saved attempt: '+decoded.responseError));return}responses=decoded.responses}
