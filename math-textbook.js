@@ -1,3 +1,4 @@
+import {mathNarrationText,mathNumberProblemText,isWrittenMathPrompt} from './math-narration.js';
 import {diagram,diagramDescription} from './math-textbook-diagrams.js';
 import {textbookLessons} from './math-textbook-content.js';
 import {auth,db} from './firebase-client.js';
@@ -25,9 +26,9 @@ async function run(){
  $('back').href='math-chapter-'+chapter+'.html';$('back').textContent='← Chapter '+chapter;
  for(const q of lesson.questions){
   const card=document.createElement('section');card.className='card';card.id='exercise-'+q.number;const option=document.createElement('option');option.value=String(q.number);option.textContent=String(q.number);$('jump').append(option);const h=document.createElement('h2');h.textContent='Exercise '+q.number;
-  const direction=document.createElement('p');direction.className='direction';direction.textContent=q.direction;const prompt=document.createElement('p');prompt.textContent=q.prompt;
+  const direction=document.createElement('p');direction.className='direction';direction.textContent=q.direction;const prompt=document.createElement('p');prompt.className='math-problem';const expression=document.createElement('span');expression.textContent=q.prompt;prompt.append(expression);const numberText=mathNumberProblemText(q);if(numberText){const speaker=document.createElement('button');speaker.type='button';speaker.className='number-read';speaker.setAttribute('aria-label','Read the number problem for exercise '+q.number);speaker.title='Read this number problem';speaker.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';speaker.onclick=()=>speak(numberText);prompt.append(speaker);}
   const page=document.createElement('p');page.className='page';page.textContent='Textbook page '+q.page;
-  const read=document.createElement('button');read.type='button';read.textContent='Read exercise '+q.number;read.onclick=()=>speak(q.direction+' '+q.prompt+(q.given?' '+q.given:'')+(q.choices?' Choices: '+q.choices.join(', '):'')+' '+diagramDescription(q.diagram));
+  const read=document.createElement('button');read.type='button';read.textContent=isWrittenMathPrompt(q.prompt)?'Read question':'Read directions';read.setAttribute('aria-label',read.textContent+' for exercise '+q.number);read.onclick=()=>speak(mathNarrationText(q));
   card.append(h,page,direction,prompt);
   if(q.given){const given=document.createElement('p');given.className='given';given.textContent=q.given;card.append(given);}
   if(q.choices){const list=document.createElement('ul');list.className='choices';for(const choice of q.choices){const li=document.createElement('li');li.textContent=choice;list.append(li);}card.append(list);}
