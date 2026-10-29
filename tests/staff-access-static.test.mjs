@@ -39,3 +39,15 @@ test('authentication changes hide protected dashboard content',()=>{
  assert.match(dashboard,/onAuthStateChanged\(auth,async user=>\{\$\('list'\)\.classList\.add\('hidden'\)/);
  assert.match(dashboard,/\$\('testPreview'\)\.removeAttribute\('srcdoc'\)/);
 });
+
+test('legacy tests do not require new resource IDs',()=>{
+ const legacy=rules.split('match /submissions/{submissionId}')[1].split('match /assessmentReleases/')[0];
+ assert.doesNotMatch(legacy,/request\.resource\.data\.resourceId/);
+ assert.match(legacy,/Canada — Test 2/);
+ assert.match(legacy,/History & Geography — Test 1/);
+});
+test('new class submissions require resource-scoped identity',()=>{
+ const scoped=rules.split('match /classSubmissions/{submissionId}')[1].split('match /classGrades/')[0];
+ assert.match(scoped,/submissionId == request\.resource\.data\.resourceId/);
+ assert.match(scoped,/documents\/publishedResources/);
+});
