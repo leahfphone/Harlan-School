@@ -6,12 +6,11 @@
 <section id="login"><h2>Teacher sign-in</h2><label>Email <input id="email" type="email" autocomplete="username"></label><label>Password <input id="password" type="password" autocomplete="current-password"></label><button id="signin">Sign in</button></section>
 <p id="status" role="status">Checking teacher sign-in…</p>
 <section id="list" hidden><h2 id="browseTitle">Choose a subject</h2><div id="breadcrumbs"></div><div id="categories"></div><div id="recordControls" hidden><button id="refresh">Refresh submissions</button><button id="signout">Sign out</button><p id="count"></p><div id="items"></div></div></section>
-<section id="detail" hidden><button id="back">Back to submissions</button><button id="print" type="button">Print student answers</button><div id="responses"></div></section>
+<section id="detail" hidden><button id="back">Back to submissions</button><button id="print" type="button">Print completed test</button><div id="responses"></div></section>
 <p class="muted"><a href="teacher-dashboard.html">Return to existing teacher dashboard</a></p>
 </main><script type="module">
 import {auth,db} from './firebase-client.js';
 import {decodeResponses} from './response-payload.js';
-import {validateTeacherKey,checkTeacherAnswer} from './teacher-answer-check.js';
 import {onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {collection,doc,getDoc,getDocs,query,orderBy} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const $=id=>document.getElementById(id), el=(tag,text)=>{const e=document.createElement(tag);e.textContent=String(text??'');return e};
@@ -48,28 +47,19 @@ async function show(r){
  let responses=[];
  if(r.source==='Older format'){responses=Array.isArray(r.responses)?r.responses:[]}
  else{const decoded=decodeResponses(r.raw||{});if(decoded.responseError){box.append(el('p','Unable to decode this saved attempt: '+decoded.responseError));return}responses=decoded.responses}
- const note=el('p','Checking for a protected teacher answer key…');box.append(note);
- let key=null;
- if(r.assignmentId){try{const snap=await getDoc(doc(db,'assessmentAnswerKeys',r.assignmentId));if(version!==reportVersion)return;if(snap.exists()){const d=snap.data();key=validateTeacherKey(d);if(!key)note.textContent='Teacher answer key exists, but it does not pass validation.';}else note.textContent='No answer-key document found for this assignment in the protected collection.';}catch(e){if(version!==reportVersion)return;note.textContent='Protected answer-key lookup failed ('+(e.code||'access restricted')+'). Confirm this account has teacher access.'}}else note.textContent='This older submission has no verified answer-key mapping.';
- if(key)note.textContent='Verified-format teacher answer key loaded. Matching responses are checked by selected letter; ambiguous short answers are flagged for teacher review. This is a preliminary check, not a final grade.';
  if(!responses.length){box.append(el('p','No answers were found in this submission.'));return}
- const summary=el('p','');summary.id='answerSummary';box.append(summary);const counts={correct:0,incorrect:0,'teacher-review':0,'not-checked':0};
+ const heading=el('p','Student submission — print this report and grade using the teacher’s paper answer key. No automatic grading is shown.');heading.className='muted';box.append(heading);
  for(const [i,q] of responses.entries()){
-  const article=el('article','');article.append(el('strong',(q.number??i+1)+'. '+(cleanQuestionNumber(q.question,q.number??i+1)||'Question text unavailable')));
+  const article=el('article','');
+  article.append(el('strong',(q.number??i+1)+'. '+(cleanQuestionNumber(q.question,q.number??i+1)||'Question text unavailable')));
   article.append(el('p','Harlan’s answer: '+(q.answer==null||q.answer===''?'(No answer)':q.answer)));
   if(q.work)article.append(el('p','Shown work: '+q.work));
   if(Array.isArray(q.checks)&&q.checks.length){
-   article.append(el('p','Work checks: '+q.checks.length));
-   for(const [j,check] of q.checks.entries())article.append(el('p','Attempt '+(j+1)+': '+(check.answer||'(No answer)')+' — '+(check.correct?'correct':'needs retry')));
+   article.append(el('p','Saved work attempts: '+q.checks.length));
+   for(const [j,check] of q.checks.entries())article.append(el('p','Attempt '+(j+1)+': '+(check.answer||'(No answer)')));
   }
-  const answerKeyNumber=r.source==='Older format'?i+1:Number(q.number??i+1);const result=checkTeacherAnswer({number:answerKeyNumber,answer:q.answer},key);counts[result.status]++;article.className=result.status==='correct'?'answer-correct':result.status==='incorrect'?'answer-incorrect':'answer-unchecked';
-  const labels={correct:'Correct (verified answer key)',incorrect:'Incorrect (verified answer key)','teacher-review':'Teacher review needed','not-checked':'Not checked — verified answer key not connected'};
-  article.append(el('p','Answer status: '+labels[result.status]));
-  if(result.status==='incorrect')article.append(el('p','Correct answer: '+result.correctAnswer));
-  if(result.status==='teacher-review'&&result.correctAnswer)article.append(el('p','Possible equivalent answer — teacher must decide. Answer key: '+result.correctAnswer));
-  box.append(article)
+  box.append(article);
  }
- summary.textContent='Answer check summary: '+counts.correct+' correct · '+counts.incorrect+' incorrect · '+counts['teacher-review']+' need teacher review · '+counts['not-checked']+' not checked.';
 
 }
 $('signin').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value)}catch(e){$('status').textContent='Sign-in failed: '+(e.code||e.message)}};
