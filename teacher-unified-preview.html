@@ -51,7 +51,7 @@ async function show(r){
  const note=el('p','Checking for a protected teacher answer key…');box.append(note);
  let key=null;
  if(r.assignmentId){try{const snap=await getDoc(doc(db,'assessmentAnswerKeys',r.assignmentId));if(version!==reportVersion)return;if(snap.exists()){const d=snap.data();key=validateTeacherKey(d);if(!key)note.textContent='Teacher answer key exists, but it does not pass validation.';}else note.textContent='No answer-key document found for this assignment in the protected collection.';}catch(e){if(version!==reportVersion)return;note.textContent='Protected answer-key lookup failed ('+(e.code||'access restricted')+'). Confirm this account has teacher access.'}}else note.textContent='This older submission has no verified answer-key mapping.';
- if(key)note.textContent='Verified-format teacher answer key loaded.';
+ if(key)note.textContent='Verified-format teacher answer key loaded. Matching responses are checked by selected letter; ambiguous short answers are flagged for teacher review. This is a preliminary check, not a final grade.';
  if(!responses.length){box.append(el('p','No answers were found in this submission.'));return}
  const summary=el('p','');summary.id='answerSummary';box.append(summary);const counts={correct:0,incorrect:0,'teacher-review':0,'not-checked':0};
  for(const [i,q] of responses.entries()){
@@ -66,6 +66,7 @@ async function show(r){
   const labels={correct:'Correct (verified answer key)',incorrect:'Incorrect (verified answer key)','teacher-review':'Teacher review needed','not-checked':'Not checked — verified answer key not connected'};
   article.append(el('p','Answer status: '+labels[result.status]));
   if(result.status==='incorrect')article.append(el('p','Correct answer: '+result.correctAnswer));
+  if(result.status==='teacher-review'&&result.correctAnswer)article.append(el('p','Possible equivalent answer — teacher must decide. Answer key: '+result.correctAnswer));
   box.append(article)
  }
  summary.textContent='Answer check summary: '+counts.correct+' correct · '+counts.incorrect+' incorrect · '+counts['teacher-review']+' need teacher review · '+counts['not-checked']+' not checked.';
