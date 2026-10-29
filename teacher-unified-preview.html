@@ -14,9 +14,9 @@ import {decodeResponses} from './response-payload.js';
 import {onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {collection,doc,getDoc,getDocs,query,orderBy} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const $=id=>document.getElementById(id), el=(tag,text)=>{const e=document.createElement(tag);e.textContent=String(text??'');return e};
-let records=[];let roster=new Map();let reportVersion=0;let selectedSubject=null;let selectedType=null;const SUBJECTS=[["Language","book-open"],["History","globe"],["Math","calculator"],["Science","flask"],["Bible","book"]];
+let records=[];let roster=new Map();let reportVersion=0;let selectedSubject=null;let selectedType=null;const SUBJECTS=[["Language","book-open"],["History","globe"],["Math","calculator"],["Science","flask"],["Bible","book"],["Life Skills","heart-handshake"]];
 const cleanQuestionNumber=(value,number)=>String(value??'').replace(new RegExp('^\\s*'+number+'[.)]\\s+'),'').trim();
-const subjectOf=s=>/math/i.test(s)?'Math':/canada|history|geography/i.test(s)?'History':'Other';
+const subjectOf=s=>/math/i.test(s)?'Math':/canada|history|geography/i.test(s)?'History':/language|grammar|spelling|reading|writing/i.test(s)?'Language':/science/i.test(s)?'Science':/bible/i.test(s)?'Bible':/life\s*skills/i.test(s)?'Life Skills':'Other';
 
 function navButton(label,fn){const b=el('button',label);b.onclick=fn;return b}
 function draw(){
