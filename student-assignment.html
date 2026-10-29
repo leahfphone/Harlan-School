@@ -5,7 +5,7 @@ import {doc,getDoc,setDoc,serverTimestamp} from 'https://www.gstatic.com/firebas
 const $=id=>document.getElementById(id),resourceId=new URLSearchParams(location.search).get('id');
 let resource=null,user=null;function say(s){$('status').textContent=s}
 onAuthStateChanged(auth,async current=>{if(!resourceId||!/^[A-Za-z0-9]{10,80}$/.test(resourceId)){say('This assignment link is invalid.');return}if(!current){try{await signInAnonymously(auth)}catch(e){say('Could not start student session: '+e.code)}return}user=current;if(!current.isAnonymous){say('Use a student session to submit assignments.');return}
-try{const snap=await getDoc(doc(db,'classResources',resourceId));if(!snap.exists()){say('Assignment not found.');return}resource=snap.data();if(!['quiz','test','assignment'].includes(resource.type)){say('This is not a student submission assignment.');return}
+try{const snap=await getDoc(doc(db,'publishedResources',resourceId));if(!snap.exists()){say('Assignment not found.');return}resource=snap.data();if(!['quiz','test','assignment'].includes(resource.type)){say('This is not a student submission assignment.');return}
 const prior=await getDoc(doc(db,'classSubmissions',resourceId+'_'+user.uid)).catch(()=>null);if(prior?.exists()){$('assignment').classList.add('hidden');say('You already submitted this assignment from this student session.');return}
 $('title').textContent=resource.title;$('subject').textContent='Subject: '+resource.subject;$('instructions').textContent=resource.content;$('assignment').classList.remove('hidden');say('Complete your work and submit once.');
 }catch(e){say('Could not load assignment: '+e.code)}});
