@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teacher Workspace — Development Preview</title>
+<style>
+*{box-sizing:border-box}body{font-family:system-ui,Arial,sans-serif;background:#f4f7fb;color:#192a3a;margin:0}main{max-width:950px;margin:0 auto;padding:24px}header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.card{background:white;border:1px solid #cad6e3;border-radius:16px;padding:22px;margin:18px 0}label{display:block;font-weight:600;margin:12px 0 5px}input,select,textarea,button{font:inherit;padding:11px;border-radius:8px;border:1px solid #8a9cac}input,select,textarea{width:100%}textarea{min-height:160px}button{background:#24567b;color:white;cursor:pointer}button:disabled{opacity:.55}button.secondary{background:white;color:#24567b}button.danger{background:#8b3131}nav{display:flex;gap:10px;flex-wrap:wrap}.hidden{display:none}.item{border-top:1px solid #ddd;padding:14px 0}.item button{margin-right:8px;margin-top:8px}#status{font-weight:600;white-space:pre-wrap}small{color:#526476}
+</style></head><body><main><header><h1>Teacher Workspace</h1><nav><a href="teacher-dashboard.html">Existing teacher dashboard</a><a href="index.html">Student hub</a></nav></header>
+<p>This is a development preview. Publishing and student assignment are not yet connected.</p>
+<p id="status" role="status">Sign in with your verified school account.</p>
+<section id="login" class="card"><h2>Staff sign-in</h2><label for="email">School email</label><input id="email" type="email" autocomplete="username"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password"><p><button id="signin">Sign in</button></p></section>
+<section id="workspace" class="hidden"><div class="card"><h2>My subjects</h2><p id="role"></p><label for="subject">Subject</label><select id="subject"></select><p><button id="signout" class="secondary">Sign out</button></p></div>
+<div class="card"><h2 id="editorTitle">Create instructional material</h2><form id="editor"><label for="type">Material type</label><select id="type"><option value="lesson">Lesson</option><option value="quiz">Quiz</option><option value="test">Test</option><option value="assignment">Assignment</option></select><label for="title">Title</label><input id="title" maxlength="200" required><label for="content">Instructions / material (plain text)</label><textarea id="content" maxlength="100000" required></textarea><p><button type="submit" id="save">Save draft</button> <button type="button" id="cancel" class="secondary">Clear editor</button></p></form></div>
+<div class="card"><h2>Materials in selected subject</h2><div id="items"></div></div></section>
+</main><script type="module">
+import {auth,db} from './firebase-client.js';
+import {loadStaffAccess,SUBJECTS,canEditSubject} from './staff-access.js';
+import {signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {collection,query,where,getDocs,doc,addDoc,updateDoc,deleteDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+const $=id=>document.getElementById(id);let access=null,editing=null,records=[];
+function status(message){$('status').textContent=message}
+function resetEditor(){editing=null;$('editorTitle').textContent='Create instructional material';$('editor').reset();$('save').textContent='Save draft'}
+$('cancel').onclick=resetEditor;
+$('signin').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value)}catch(e){status('Sign-in failed: '+e.code)}};
+$('signout').onclick=()=>signOut(auth);
+async function loadItems(){const subject=$('subject').value;$('items').replaceChildren();resetEditor();if(!canEditSubject(access,subject))return;try{
+const snap=await getDocs(query(collection(db,'classResources'),where('subject','==',subject)));records=snap.docs.map(d=>({id:d.id,...d.data()}));
+if(!records.length)$('items').textContent='No materials yet for this subject.';
+for(const record of records){const item=document.createElement('div');item.className='item';const heading=document.createElement('strong');heading.textContent=record.title+' ('+record.type+')';item.append(heading);const edit=document.createElement('button');edit.textContent='Edit';edit.onclick=()=>{editing=record.id;$('editorTitle').textContent='Edit material';$('type').value=record.type;$('title').value=record.title;$('content').value=record.content;$('save').textContent='Save changes';$('editor').scrollIntoView({behavior:'smooth'})};item.append(edit);
+const remove=document.createElement('button');remove.className='danger';remove.textContent='Delete';remove.onclick=async()=>{if(!confirm('Delete this material?'))return;try{await deleteDoc(doc(db,'classResources',record.id));status('Material deleted.');await loadItems()}catch(e){status('Delete failed: '+e.code)}};item.append(remove);$('items').append(item)}
+}catch(e){status('Could not load subject materials: '+e.code)}}
+$('subject').onchange=loadItems;
+$('editor').onsubmit=async event=>{event.preventDefault();const subject=$('subject').value;if(!canEditSubject(access,subject)){status('You do not have permission for this subject.');return}const save=$('save');save.disabled=true;try{
+const payload={title:$('title').value.trim(),type:$('type').value,content:$('content').value,updatedAt:serverTimestamp()};
+if(editing)await updateDoc(doc(db,'classResources',editing),payload);
+else await addDoc(collection(db,'classResources'),{...payload,subject,createdBy:auth.currentUser.uid});
+status('Draft saved. It is not yet published to students.');await loadItems();
+}catch(e){status('Save failed: '+e.code)}finally{save.disabled=false}};
+onAuthStateChanged(auth,async user=>{access=null;$('workspace').classList.add('hidden');$('login').classList.remove('hidden');if(!user)return;try{await user.getIdToken(true);access=await loadStaffAccess(user);if(!access){status('No active verified staff access. Ask the primary administrator.');return}
+$('login').classList.add('hidden');$('workspace').classList.remove('hidden');$('role').textContent='Signed in: '+user.email+' — '+access.role.replace('_',' ');$('subject').replaceChildren();for(const subject of SUBJECTS){if(canEditSubject(access,subject.id)){const option=document.createElement('option');option.value=subject.id;option.textContent=subject.name;$('subject').append(option)}}
+status('Staff access verified. Materials saved here remain drafts.');await loadItems();
+}catch(e){status('Could not verify staff permissions: '+e.code)}});
+</script></body></html>
