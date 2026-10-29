@@ -1,10 +1,39 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isTeacher() {
+    // Bootstrap primary administrator remains available while staff accounts are provisioned.
+    function isPrimaryAdmin() {
       return request.auth != null
         && request.auth.token.email_verified == true
         && request.auth.token.email == 'lphone@jcatoday.org';
+    }
+    function hasStaffProfile() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/staffAccess/$(request.auth.uid))
+        && get(/databases/$(database)/documents/staffAccess/$(request.auth.uid)).data.email == request.auth.token.email
+        && get(/databases/$(database)/documents/staffAccess/$(request.auth.uid)).data.active == true;
+    }
+    function staffRole() {
+      return get(/databases/$(database)/documents/staffAccess/$(request.auth.uid)).data.role;
+    }
+    function isAssistantAdmin() {
+      return hasStaffProfile() && staffRole() == 'assistant_admin';
+    }
+    function isTeacher() {
+      return isPrimaryAdmin() || isAssistantAdmin() ||
+        (hasStaffProfile() && staffRole() == 'teacher');
+    }
+    function canManageSubject(subject) {
+      return isPrimaryAdmin() || isAssistantAdmin() ||
+        (hasStaffProfile() && staffRole() == 'teacher'
+          && subject is string
+          && subject in get(/databases/$(database)/documents/staffAccess/$(request.auth.uid)).data.subjects);
+    }
+    // Legacy submissions do not have reliable subject identifiers. Until migrated,
+    // they are readable only by administrators, not subject teachers.
+    function canReadLegacySubmissions() {
+      return isPrimaryAdmin() || isAssistantAdmin();
     }
 
     match /submissions/{submissionId} {
@@ -22,7 +51,7 @@ service cloud.firestore {
         && request.resource.data.responses.size() == 3
         && request.resource.data.submittedAt == request.time;
 
-      allow read: if isTeacher();
+      allow read: if canReadLegacySubmissions();
       allow create: if request.auth != null
         && request.auth.token.firebase.sign_in_provider == 'anonymous'
         && (submissionId == request.auth.uid
@@ -50,16 +79,117 @@ service cloud.firestore {
     }
 
     match /assessmentReleases/{assessmentId} {
-      allow read: if isTeacher() || request.auth != null;
-      allow create, update, delete: if isTeacher();
+      allow read: if isPrimaryAdmin() || isAssistantAdmin() || request.auth != null;
+      allow create, update, delete: if isPrimaryAdmin() || isAssistantAdmin();
     }
 
     match /protectedAssessments/{assessmentId} {
-      allow read: if isTeacher() ||
+      allow read: if isPrimaryAdmin() || isAssistantAdmin() ||
         (request.auth != null
          && exists(/databases/$(database)/documents/assessmentReleases/$(assessmentId))
          && get(/databases/$(database)/documents/assessmentReleases/$(assessmentId)).data.released == true);
-      allow create, update, delete: if isTeacher();
+      allow create, update, delete: if isPrimaryAdmin() || isAssistantAdmin();
+    }
+
+    // Subject-scoped student work: students may submit only as themselves.
+    // The classResources document identifies the authoritative subject.
+    match /classSubmissions/{submissionId} {
+      function validAssignment() {
+        return request.resource.data.resourceId is string
+          && exists(/databases/$(database)/documents/publishedResources/$(request.resource.data.resourceId))
+          && get(/databases/$(database)/documents/publishedResources/$(request.resource.data.resourceId)).data.subject == request.resource.data.subject
+          && get(/databases/$(database)/documents/publishedResources/$(request.resource.data.resourceId)).data.type in ['quiz','test','assignment'];
+      }
+      allow create: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && request.resource.data.keys().hasOnly(['resourceId','subject','studentUid','student','responses','submittedAt'])
+        && request.resource.data.keys().hasAll(['resourceId','subject','studentUid','student','responses','submittedAt'])
+        && submissionId == request.resource.data.resourceId + '_' + request.auth.uid
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.student is string
+        && request.resource.data.student.size() <= 100
+        && request.resource.data.responses is list
+        && request.resource.data.responses.size() <= 100
+        && request.resource.data.submittedAt == request.time
+        && validAssignment();
+      allow read: if canManageSubject(resource.data.subject);
+      allow update, delete: if false;
+    }
+
+    // Teacher feedback is stored separately from immutable student submissions.
+    match /classGrades/{submissionId} {
+      function hasSubmission() {
+        return exists(/databases/$(database)/documents/classSubmissions/$(submissionId));
+      }
+      function submissionSubject() {
+        return get(/databases/$(database)/documents/classSubmissions/$(submissionId)).data.subject;
+      }
+      allow read: if hasSubmission() && canManageSubject(submissionSubject());
+      allow create, update: if hasSubmission()
+        && canManageSubject(submissionSubject())
+        && request.resource.data.keys().hasOnly(['score','feedback','gradedBy','gradedAt'])
+        && request.resource.data.keys().hasAll(['score','feedback','gradedBy','gradedAt'])
+        && request.resource.data.score is number
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 100
+        && request.resource.data.feedback is string
+        && request.resource.data.feedback.size() <= 10000
+        && request.resource.data.gradedBy == request.auth.uid
+        && request.resource.data.gradedAt == request.time;
+      allow delete: if false;
+    }
+
+    // Staff access records are provisioned through trusted Firebase Admin SDK.
+    match /staffAccess/{uid} {
+      allow read: if isPrimaryAdmin() ||
+        (request.auth != null && request.auth.uid == uid && hasStaffProfile());
+      allow write: if false;
+    }
+
+    // Student-visible copies must be published by an administrator. Never copy answer keys.
+    match /publishedResources/{resourceId} {
+      allow read: if request.auth != null;
+      allow create, update: if (isPrimaryAdmin() || isAssistantAdmin())
+        && request.resource.data.keys().hasOnly(['subject','title','type','content'])
+        && request.resource.data.keys().hasAll(['subject','title','type','content'])
+        && request.resource.data.subject in ['math','language','history','science','bible','life-skills']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.content is string
+        && request.resource.data.content.size() <= 100000
+        && request.resource.data.type in ['quiz','test','assignment']
+        && exists(/databases/$(database)/documents/classResources/$(resourceId))
+        && get(/databases/$(database)/documents/classResources/$(resourceId)).data.subject == request.resource.data.subject;
+      allow delete: if isPrimaryAdmin() || isAssistantAdmin();
+    }
+
+    // New instructional resources are explicitly tagged by subject.
+    match /classResources/{resourceId} {
+      allow read: if canManageSubject(resource.data.subject);
+      allow create: if canManageSubject(request.resource.data.subject)
+        && request.resource.data.keys().hasOnly(['subject','title','type','content','updatedAt','createdBy'])
+        && request.resource.data.keys().hasAll(['subject','title','type','content','updatedAt','createdBy'])
+        && request.resource.data.subject in ['math','language','history','science','bible','life-skills']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.content is string
+        && request.resource.data.content.size() <= 100000
+        && request.resource.data.type in ['lesson','quiz','test','assignment']
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+      allow update: if canManageSubject(resource.data.subject)
+        && request.resource.data.subject == resource.data.subject
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','type','content','updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.content is string
+        && request.resource.data.content.size() <= 100000
+        && request.resource.data.type in ['lesson','quiz','test','assignment']
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if canManageSubject(resource.data.subject);
     }
   }
 }
