@@ -62,7 +62,7 @@ async function show(r){
    article.append(el('p','Work checks: '+q.checks.length));
    for(const [j,check] of q.checks.entries())article.append(el('p','Attempt '+(j+1)+': '+(check.answer||'(No answer)')+' — '+(check.correct?'correct':'needs retry')));
   }
-  const result=checkTeacherAnswer({number:Number(q.number??i+1),answer:q.answer},key);counts[result.status]++;article.className=result.status==='correct'?'answer-correct':result.status==='incorrect'?'answer-incorrect':'answer-unchecked';
+  const answerKeyNumber=r.source==='Older format'?i+1:Number(q.number??i+1);const result=checkTeacherAnswer({number:answerKeyNumber,answer:q.answer},key);counts[result.status]++;article.className=result.status==='correct'?'answer-correct':result.status==='incorrect'?'answer-incorrect':'answer-unchecked';
   const labels={correct:'Correct (verified answer key)',incorrect:'Incorrect (verified answer key)','teacher-review':'Teacher review needed','not-checked':'Not checked — verified answer key not connected'};
   article.append(el('p','Answer status: '+labels[result.status]));
   if(result.status==='incorrect')article.append(el('p','Correct answer: '+result.correctAnswer));
