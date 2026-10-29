@@ -7,7 +7,9 @@
     "test:browser": "firebase emulators:exec --project demo-harlan-rules --config firebase.emulator.json --only auth,firestore \"node tests/browser-workflow.test.mjs\"",
     "prepare:release": "node scripts/prepare-release.mjs",
     "test:webkit": "BROWSER_ENGINE=webkit firebase emulators:exec --project demo-harlan-rules --config firebase.emulator.json --only auth,firestore \"node tests/browser-workflow.test.mjs\"",
-    "test:release": "node --test tests/release-package.test.mjs"
+    "test:release": "node --test tests/release-package.test.mjs",
+    "test:staff:static": "node --test tests/staff-access-static.test.mjs",
+    "test:staff:rules": "firebase emulators:exec --project demo-harlan-staff --config firebase.staff.emulator.json --only firestore \"node --test tests/staff-firestore-emulator.test.mjs\""
   },
   "devDependencies": {
     "firebase": "10.14.1",
