@@ -104,6 +104,7 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_provider == 'anonymous'
         && request.resource.data.keys().hasOnly(['resourceId','subject','studentUid','student','responses','submittedAt'])
         && request.resource.data.keys().hasAll(['resourceId','subject','studentUid','student','responses','submittedAt'])
+        && submissionId == request.resource.data.resourceId + '_' + request.auth.uid
         && request.resource.data.studentUid == request.auth.uid
         && request.resource.data.student is string
         && request.resource.data.student.size() <= 100
