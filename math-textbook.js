@@ -9,13 +9,32 @@ import {submitAssignment,submissionStatus,loadAssignmentWork,saveAssignmentDraft
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);
 const chapter=params.get('chapter')||'4',lessonId=params.get('lesson')||'31',lesson=textbookLessons[chapter+':'+lessonId];
 let uid=null,allowed=false,practice=false,busy=false,invalidated=false,timer,saveQueue=Promise.resolve();const fields=[];
+const selectionKey='harlan-assigned-problems-'+(lesson?.assignmentId||chapter+'-'+lessonId);
+let selectedNumbers=null,assignedOnly=false;
+try{const saved=JSON.parse(localStorage.getItem(selectionKey)||'null');if(Array.isArray(saved))selectedNumbers=new Set(saved.map(String));}catch(e){}
+function isAssigned(q){return selectedNumbers===null||selectedNumbers.has(String(q.number));}
+function updateAssignmentView(){
+ const count=fields.filter(f=>isAssigned(f.q)).length;
+ $('assignment-count').textContent=selectedNumbers===null?'All '+fields.length+' problems selected':count+' of '+fields.length+' problems selected';
+ $('show-assigned').textContent=assignedOnly?'Show all problems':'Show selected problems only';
+ for(const f of fields){
+   const chosen=isAssigned(f.q);
+   f.card.hidden=assignedOnly&&!chosen;
+   f.pick.checked=chosen;
+ }
+ for(const option of $('jump').options){const f=fields.find(x=>String(x.q.number)===option.value);option.hidden=assignedOnly&&f&&!isAssigned(f.q);}
+}
+function saveSelection(){try{if(selectedNumbers===null)localStorage.removeItem(selectionKey);else localStorage.setItem(selectionKey,JSON.stringify([...selectedNumbers]));}catch(e){}updateAssignmentView();}
+$('choose-problems').onclick=()=>{if(!confirm('Choose which problems are assigned? This will clear the current problem selection, but will NOT erase any answers.'))return;selectedNumbers=new Set();assignedOnly=false;saveSelection();document.getElementById('questions').scrollIntoView({block:'start'});};
+$('select-all').onclick=()=>{selectedNumbers=null;assignedOnly=false;saveSelection();};
+$('show-assigned').onclick=()=>{if(assignedOnly){assignedOnly=false;}else{if(selectedNumbers!==null&&selectedNumbers.size===0){alert('Select at least one problem first.');return;}assignedOnly=true;}updateAssignmentView();};
 const say=s=>{$('status').textContent=s;};
 function lock(){for(const f of fields){for(const el of [f.answer,f.work])el.disabled=!(allowed||practice)||busy||invalidated;for(const b of document.querySelectorAll('#exercise-'+f.q.number+' .choice-button'))b.disabled=!(allowed||practice)||busy||invalidated;}$('save-top').disabled=$('save').disabled=$('submit').disabled=!allowed||busy||invalidated;}
 function speak(text){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=.82;speechSynthesis.speak(u);}
 $('jump').onchange=()=>document.getElementById('exercise-'+$('jump').value)?.scrollIntoView({block:'start'});
 $('save-top').onclick=()=>$('save').click();
 $('stop').onclick=()=>window.speechSynthesis?.cancel();
-function responses(){return fields.map(({q,answer,work})=>({number:q.number,question:'Page '+q.page+' — '+q.direction+'\n'+q.prompt+(q.given?'\n'+q.given:'')+(q.choices?'\nChoices: '+q.choices.join('; '):'')+(q.diagram?'\n'+diagramDescription(q.diagram):''),answer:answer.value,work:work.value,checks:[]}));}
+function responses(onlyAssigned=false){return fields.filter(f=>!onlyAssigned||isAssigned(f.q)).map(({q,answer,work})=>({number:q.number,question:'Page '+q.page+' — '+q.direction+'\n'+q.prompt+(q.given?'\n'+q.given:'')+(q.choices?'\nChoices: '+q.choices.join('; '):'')+(q.diagram?'\n'+diagramDescription(q.diagram):''),answer:answer.value,work:work.value,checks:[]}));}
 function sameUser(){return !invalidated&&auth.currentUser?.uid===uid;}
 async function persist(){if(!allowed||!sameUser())throw Error('Access changed. Reload this lesson.');await saveAssignmentDraft({auth,db,assignmentId:lesson.assignmentId,responses:responses()});}
 function backupKey(){return 'textbook-'+uid+'-'+lesson.assignmentId;}
@@ -25,7 +44,7 @@ async function run(){
  $('title').textContent=(/^\d+$/.test(lesson.lesson)?'Lesson '+lesson.lesson+' — ':'')+lesson.title;$('source').textContent='Textbook pages '+lesson.pages.join('–')+' • Exercises 1–'+lesson.questions.length;
  $('back').href='math-chapter-'+chapter+'.html';$('back').textContent='← Chapter '+chapter;
  for(const q of lesson.questions){
-  const card=document.createElement('section');card.className='card';card.id='exercise-'+q.number;const option=document.createElement('option');option.value=String(q.number);option.textContent=String(q.number);$('jump').append(option);const h=document.createElement('h2');h.textContent='Exercise '+q.number;
+  const card=document.createElement('section');card.className='card';card.id='exercise-'+q.number;const pick=document.createElement('input');pick.type='checkbox';pick.className='assignment-pick';pick.checked=isAssigned(q);pick.setAttribute('aria-label','Include exercise '+q.number+' in assigned work');pick.onchange=()=>{if(selectedNumbers===null)selectedNumbers=new Set(fields.map(f=>String(f.q.number)).concat(String(q.number)));if(pick.checked)selectedNumbers.add(String(q.number));else selectedNumbers.delete(String(q.number));saveSelection();};const pickLabel=document.createElement('label');pickLabel.className='assignment-pick-label';pickLabel.append(pick,document.createTextNode(' Assigned problem'));card.append(pickLabel);const option=document.createElement('option');option.value=String(q.number);option.textContent=String(q.number);$('jump').append(option);const h=document.createElement('h2');h.textContent='Exercise '+q.number;
   const direction=document.createElement('p');direction.className='direction';direction.textContent=q.direction;const prompt=document.createElement('p');prompt.className='math-problem';const expression=document.createElement('span');expression.textContent=q.prompt;prompt.append(expression);const numberText=mathNumberProblemText(q);if(numberText){const speaker=document.createElement('button');speaker.type='button';speaker.className='number-read';speaker.setAttribute('aria-label','Read the number problem for exercise '+q.number);speaker.title='Read this number problem';speaker.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';speaker.onclick=()=>speak(numberText);prompt.append(speaker);}
   const page=document.createElement('p');page.className='page';page.textContent='Textbook page '+q.page;
   const read=document.createElement('button');read.type='button';read.textContent=isWrittenMathPrompt(q.prompt)?'Read question':'Read directions';read.setAttribute('aria-label',read.textContent+' for exercise '+q.number);read.onclick=()=>speak(mathNarrationText(q));
@@ -38,9 +57,9 @@ async function run(){
   for(const [el,label]of[[answer,'Answer '+q.number],[work,'Work for exercise '+q.number]]){const l=document.createElement('label');l.htmlFor=el.id;l.textContent=label;el.oninput=autosave;card.append(l,el);}
   if(q.drawing){const instruction=document.createElement('p');instruction.textContent='Use paper for the diagram or factor tree, and describe its parts in your work box.';card.append(instruction);}
   if(q.choices){const sync=()=>{const selected=answer.value.split(';').map(x=>x.trim()).filter(Boolean);for(const b of card.querySelectorAll('.choice-button'))b.setAttribute('aria-pressed',String(selected.includes(b.textContent)));};answer.addEventListener('input',sync);card.syncChoices=sync;}
-  fields.push({q,answer,work});$('questions').append(card);
+  fields.push({q,answer,work,card,pick});$('questions').append(card);
  }
- lock();await auth.authStateReady();if(!auth.currentUser)await signInAnonymously(auth);uid=auth.currentUser.uid;
+ updateAssignmentView();lock();await auth.authStateReady();if(!auth.currentUser)await signInAnonymously(auth);uid=auth.currentUser.uid;
  onAuthStateChanged(auth,u=>{if(u?.uid!==uid){invalidated=true;allowed=false;clearTimeout(timer);for(const f of fields)f.answer.value=f.work.value='';say('Browser access changed. Reload this lesson.');lock();}});
  if(await studentAccessMode({auth,db})!=='assigned')throw Error('Your teacher needs to enable this textbook lesson for this browser.');
  const info=await submissionStatus({auth,db,assignmentId:lesson.assignmentId});allowed=['not_submitted','returned'].includes(info.status);
@@ -48,5 +67,5 @@ async function run(){
  say(allowed?(info.status==='returned'?'Your teacher returned this work. Make your corrections and submit again.':'Ready for your textbook exercises.'):'This work has been submitted. Wait for your teacher to return it for corrections.');lock();
 }
 $('save').onclick=async()=>{if(!allowed||busy)return;busy=true;lock();clearTimeout(timer);try{await saveQueue;await persist();say('Progress saved to your account.');}catch(e){say('Save not confirmed. Your answers are still on this page. '+(e.code||e.message));}finally{busy=false;lock();}};
-$('submit').onclick=async()=>{if(!allowed||busy)return;busy=true;lock();clearTimeout(timer);try{await saveQueue;if(!sameUser())throw Error('Access changed. Reload this lesson.');await submitAssignment({auth,db,assignmentId:lesson.assignmentId,responses:responses()});allowed=false;removeBackup(backupKey());say('Submitted successfully to teacher dashboard.');}catch(e){say('Delivery is not confirmed. Your answers are still on this page. '+(e.code||e.message));}finally{busy=false;lock();}};
+$('submit').onclick=async()=>{if(!allowed||busy)return;busy=true;lock();clearTimeout(timer);try{await saveQueue;if(!sameUser())throw Error('Access changed. Reload this lesson.');const assigned=responses(true);if(!assigned.length)throw Error('Select at least one assigned problem before submitting.');await submitAssignment({auth,db,assignmentId:lesson.assignmentId,responses:assigned});allowed=false;removeBackup(backupKey());say('Submitted successfully to teacher dashboard.');}catch(e){say('Delivery is not confirmed. Your answers are still on this page. '+(e.code||e.message));}finally{busy=false;lock();}};
 run().catch(e=>{allowed=false;practice=!invalidated;lock();say(practice?'Practice mode: you can select answers and use the math keyboard, but this browser is not approved. Answers are not saved or sent to the teacher. Ask your teacher to approve this browser for assigned work.':'Textbook submission is unavailable. '+(e.code||e.message));});
