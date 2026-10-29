@@ -3,3 +3,10 @@
 .toolbar{position:sticky;top:0;z-index:2;background:#f5f7fa;border-bottom:2px solid #cbd4df;padding:8px 0}.toolbar label{display:inline-block;margin-right:8px}.toolbar select{font:inherit;padding:10px;max-width:100%;border:2px solid #8695a5;border-radius:9px}.toolbar button{margin-left:8px}.toolbar p{font-size:17px;margin:4px 0}.card{scroll-margin-top:230px}@media print{.toolbar{display:none}}
 
 button.number-read{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:1em;line-height:1;vertical-align:middle;width:1.6em;height:1.6em;min-width:0;min-height:0;margin:0 0 0 .2em;padding:0;border:0;border-radius:.2em;background:transparent;color:#17456b;cursor:pointer}button.number-read svg{display:block;width:1em;height:1em;max-height:none}button.number-read:hover{background:#edf4f7}button.number-read:focus-visible{outline:3px solid #f3b344;outline-offset:2px}@media print{button.number-read{display:none}}
+
+/* Touch-friendly selectable answer facts */
+.selectable-choices{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0 20px;padding:0;list-style:none}
+.selectable-choices .choice-button{font:inherit;min-height:54px;padding:12px 16px;border:2px solid #91a6b9;border-radius:12px;background:#edf4f8;color:#17212b;cursor:pointer;touch-action:manipulation}
+.selectable-choices .choice-button[aria-pressed="true"]{background:#d4eddf;border-color:#267348;box-shadow:inset 0 0 0 1px #267348}
+.selectable-choices .choice-button[aria-pressed="true"]::before{content:"✓ ";font-weight:700}
+.selectable-choices .choice-button:focus-visible{outline:3px solid #e28a16;outline-offset:2px}
