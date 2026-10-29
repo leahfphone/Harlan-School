@@ -97,9 +97,9 @@ service cloud.firestore {
     match /classSubmissions/{submissionId} {
       function validAssignment() {
         return request.resource.data.resourceId is string
-          && exists(/databases/$(database)/documents/classResources/$(request.resource.data.resourceId))
-          && get(/databases/$(database)/documents/classResources/$(request.resource.data.resourceId)).data.subject == request.resource.data.subject
-          && get(/databases/$(database)/documents/classResources/$(request.resource.data.resourceId)).data.type in ['quiz','test','assignment'];
+          && exists(/databases/$(database)/documents/publishedResources/$(request.resource.data.resourceId))
+          && get(/databases/$(database)/documents/publishedResources/$(request.resource.data.resourceId)).data.subject == request.resource.data.subject
+          && get(/databases/$(database)/documents/publishedResources/$(request.resource.data.resourceId)).data.type in ['quiz','test','assignment'];
       }
       allow create: if request.auth != null
         && request.auth.token.firebase.sign_in_provider == 'anonymous'
@@ -144,6 +144,12 @@ service cloud.firestore {
       allow read: if isPrimaryAdmin() ||
         (request.auth != null && request.auth.uid == uid && hasStaffProfile());
       allow write: if false;
+    }
+
+    // Student-visible copies must be published by an administrator. Never copy answer keys.
+    match /publishedResources/{resourceId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isPrimaryAdmin() || isAssistantAdmin();
     }
 
     // New instructional resources are explicitly tagged by subject.
