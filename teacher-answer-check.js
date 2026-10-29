@@ -19,6 +19,20 @@ export function checkTeacherAnswer(question,key){
  if(!entry)return {status:'not-checked'};
  if(entry.type==='manual')return {status:'teacher-review'};
  const answers=[entry.correctAnswer,...entry.acceptedAnswers];
- const correct=answers.some(a=>norm(a)===norm(question.answer));
+ const submitted=norm(question.answer);
+ let correct=answers.some(a=>norm(a)===submitted);
+ // Legacy matching answers store the selected letter plus its displayed label
+ // (e.g. "H — Winnipeg"). Compare the selected letter, not the label.
+ if(!correct && /^[a-z]$/i.test(entry.correctAnswer.trim())){
+   const match=String(question.answer??'').trim().match(/^([a-z])\\s*[-–—:]\\s*\\S.+$/i);
+   if(match)correct=answers.some(a=>norm(a)===norm(match[1]));
+ }
+ // Ambiguous near-matches in historical free-response work must be reviewed
+ // by a teacher, rather than being automatically marked wrong or right.
+ if(!correct && submitted && entry.type==='exact' && !/^[a-z]$/i.test(entry.correctAnswer.trim())){
+   const simplified=s=>norm(s).replace(/[^a-z0-9 ]/g,'').replace(/\\b(the|of|and)\\b/g,' ').replace(/\\s+/g,' ').trim();
+   const reduced=s=>simplified(s).replace(/^(lake|mount|mt|bay|river) /,'').trim();
+   if(answers.some(a=>reduced(a)===reduced(question.answer)))return {status:'teacher-review',correctAnswer:entry.correctAnswer};
+ }
  return {status:correct?'correct':'incorrect',correctAnswer:correct?null:entry.correctAnswer};
 }
