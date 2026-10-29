@@ -157,7 +157,9 @@ service cloud.firestore {
         && request.resource.data.title.size() <= 200
         && request.resource.data.content is string
         && request.resource.data.content.size() <= 100000
-        && request.resource.data.type in ['quiz','test','assignment'];
+        && request.resource.data.type in ['quiz','test','assignment']
+        && exists(/databases/$(database)/documents/classResources/$(resourceId))
+        && get(/databases/$(database)/documents/classResources/$(resourceId)).data.subject == request.resource.data.subject;
       allow delete: if isPrimaryAdmin() || isAssistantAdmin();
     }
 
