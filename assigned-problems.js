@@ -1,0 +1,15 @@
+(()=>{'use strict';
+const cards=[...document.querySelectorAll('.question, .card[data-q]')].filter(el=>el.querySelector('input:not([type=hidden]),textarea'));
+if(!cards.length)return;
+const id='harlan-selected-'+location.pathname;
+let selected=null;try{const v=JSON.parse(localStorage.getItem(id)||'null');if(Array.isArray(v))selected=new Set(v.map(String));}catch(e){}
+const style=document.createElement('style');style.textContent='.harlan-pick-tools{background:#eaf3fa;border:2px solid #a9c5db;border-radius:14px;padding:14px;margin:16px 0;font:17px Arial,sans-serif}.harlan-pick-tools button{margin:5px;padding:10px;border-radius:9px;min-height:44px}.harlan-pick-label{display:flex;align-items:center;gap:8px;font:16px Arial,sans-serif;margin:5px 0 12px}.harlan-pick-label input{width:23px!important;height:23px!important;display:inline-block!important}.harlan-assigned-hidden{display:none!important}';document.head.append(style);
+const panel=document.createElement('section');panel.className='harlan-pick-tools';panel.innerHTML='<strong>Choose assigned problems</strong><p>Select the problems your teacher assigned. Hiding a problem will not erase your answers.</p>';
+const only=document.createElement('button');only.type='button';only.textContent='Show selected only';const all=document.createElement('button');all.type='button';all.textContent='Select all';const status=document.createElement('p');status.setAttribute('role','status');panel.append(only,all,status);
+const main=document.querySelector('main')||document.body;const first=cards[0];const section=first.closest('section');if(section&&section!==first&&main.contains(section))section.before(panel);else first.before(panel);
+let filtered=false;
+const entries=cards.map((card,i)=>{const number=String(card.dataset.q||card.querySelector('label strong')?.textContent.replace(/\D/g,'')||(i+1));const label=document.createElement('label');label.className='harlan-pick-label';const check=document.createElement('input');check.type='checkbox';label.append(check,document.createTextNode('Assigned problem '+number));card.prepend(label);check.onchange=()=>{if(selected===null)selected=new Set(entries.map(x=>x.number));if(check.checked)selected.add(number);else selected.delete(number);persist();};return{card,number,check};});
+function persist(){try{if(selected===null)localStorage.removeItem(id);else localStorage.setItem(id,JSON.stringify([...selected]));}catch(e){}render();}
+function render(){let n=0;for(const e of entries){const chosen=selected===null||selected.has(e.number);e.check.checked=chosen;if(chosen)n++;e.card.classList.toggle('harlan-assigned-hidden',filtered&&!chosen);}status.textContent=n+' of '+entries.length+' problems selected';only.textContent=filtered?'Show all problems':'Show selected only';}
+only.onclick=()=>{filtered=!filtered;render();};all.onclick=()=>{selected=null;filtered=false;persist();};render();
+})();
