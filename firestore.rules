@@ -91,6 +91,52 @@ service cloud.firestore {
       allow create, update, delete: if isPrimaryAdmin() || isAssistantAdmin();
     }
 
+    // Subject-scoped student work: students may submit only as themselves.
+    // The classResources document identifies the authoritative subject.
+    match /classSubmissions/{submissionId} {
+      function validAssignment() {
+        return request.resource.data.resourceId is string
+          && exists(/databases/$(database)/documents/classResources/$(request.resource.data.resourceId))
+          && get(/databases/$(database)/documents/classResources/$(request.resource.data.resourceId)).data.subject == request.resource.data.subject;
+      }
+      allow create: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && request.resource.data.keys().hasOnly(['resourceId','subject','studentUid','student','responses','submittedAt'])
+        && request.resource.data.keys().hasAll(['resourceId','subject','studentUid','student','responses','submittedAt'])
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.student is string
+        && request.resource.data.student.size() <= 100
+        && request.resource.data.responses is list
+        && request.resource.data.responses.size() <= 100
+        && request.resource.data.submittedAt == request.time
+        && validAssignment();
+      allow read: if canManageSubject(resource.data.subject);
+      allow update, delete: if false;
+    }
+
+    // Teacher feedback is stored separately from immutable student submissions.
+    match /classGrades/{submissionId} {
+      function hasSubmission() {
+        return exists(/databases/$(database)/documents/classSubmissions/$(submissionId));
+      }
+      function submissionSubject() {
+        return get(/databases/$(database)/documents/classSubmissions/$(submissionId)).data.subject;
+      }
+      allow read: if hasSubmission() && canManageSubject(submissionSubject());
+      allow create, update: if hasSubmission()
+        && canManageSubject(submissionSubject())
+        && request.resource.data.keys().hasOnly(['score','feedback','gradedBy','gradedAt'])
+        && request.resource.data.keys().hasAll(['score','feedback','gradedBy','gradedAt'])
+        && request.resource.data.score is number
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 100
+        && request.resource.data.feedback is string
+        && request.resource.data.feedback.size() <= 10000
+        && request.resource.data.gradedBy == request.auth.uid
+        && request.resource.data.gradedAt == request.time;
+      allow delete: if false;
+    }
+
     // Staff access records are provisioned through trusted Firebase Admin SDK.
     match /staffAccess/{uid} {
       allow read: if isPrimaryAdmin() ||
