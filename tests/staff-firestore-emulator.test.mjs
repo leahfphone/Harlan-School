@@ -12,7 +12,13 @@ const science=env.authenticatedContext('science',{email:'jthompson@jcatoday.org'
 const life=env.authenticatedContext('life',{email:'cleiser@jcatoday.org',email_verified:true});
 const stranger=env.authenticatedContext('stranger',{email:'outsider@example.org',email_verified:true});
 const student=env.authenticatedContext('student',{firebase:{sign_in_provider:'anonymous'}});
-const db=c=>c.firestore();
+// Cache each context's Firestore instance. Recalling context.firestore() after
+// the first query tries to reapply emulator settings and throws failed-precondition.
+const instances=new WeakMap();
+function db(context){
+ if(!instances.has(context))instances.set(context,context.firestore());
+ return instances.get(context);
+}
 await env.withSecurityRulesDisabled(async ctx=>{
  const admin=db(ctx);
  for(const [id,email,role,subjects] of [['amber','aduncan@jcatoday.org','assistant_admin',[]],['science','jthompson@jcatoday.org','teacher',['science']],['life','cleiser@jcatoday.org','teacher',['life-skills']]])
