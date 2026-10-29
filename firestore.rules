@@ -59,6 +59,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'student', 'studentUid', 'testTitle', 'submittedAt', 'responses'
         ])
+        && submissionId == request.resource.data.resourceId + '_' + request.auth.uid
         && request.resource.data.studentUid == request.auth.uid
         && request.resource.data.student is string
         && request.resource.data.student.size() <= 100
@@ -97,7 +98,8 @@ service cloud.firestore {
       function validAssignment() {
         return request.resource.data.resourceId is string
           && exists(/databases/$(database)/documents/classResources/$(request.resource.data.resourceId))
-          && get(/databases/$(database)/documents/classResources/$(request.resource.data.resourceId)).data.subject == request.resource.data.subject;
+          && get(/databases/$(database)/documents/classResources/$(request.resource.data.resourceId)).data.subject == request.resource.data.subject
+          && get(/databases/$(database)/documents/classResources/$(request.resource.data.resourceId)).data.type in ['quiz','test','assignment'];
       }
       allow create: if request.auth != null
         && request.auth.token.firebase.sign_in_provider == 'anonymous'
