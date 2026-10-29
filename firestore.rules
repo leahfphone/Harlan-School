@@ -26,7 +26,7 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.auth.token.firebase.sign_in_provider == 'anonymous'
         && (submissionId == request.auth.uid
-            || submissionId == 'test1_' + request.auth.uid)
+            || submissionId == 'test1_' + request.auth.uid || submissionId == 'spelling5_' + request.auth.uid)
         && request.resource.data.keys().hasOnly([
           'student', 'studentUid', 'testTitle', 'submittedAt', 'responses'
         ])
@@ -45,6 +45,12 @@ service cloud.firestore {
             && request.resource.data.responses.size() == 61
             && exists(/databases/$(database)/documents/assessmentReleases/history-test-1)
             && get(/databases/$(database)/documents/assessmentReleases/history-test-1).data.released == true)
+          ||
+          (submissionId == 'spelling5_' + request.auth.uid
+            && request.resource.data.testTitle == 'Spelling & Vocabulary — Test 5'
+            && request.resource.data.responses.size() == 30
+            && exists(/databases/$(database)/documents/assessmentReleases/spelling-test-5)
+            && get(/databases/$(database)/documents/assessmentReleases/spelling-test-5).data.released == true)
         );
       allow update, delete: if false;
     }
