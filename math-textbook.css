@@ -10,3 +10,5 @@ button.number-read{display:inline-flex;align-items:center;justify-content:center
 .selectable-choices .choice-button[aria-pressed="true"]{background:#d4eddf;border-color:#267348;box-shadow:inset 0 0 0 1px #267348}
 .selectable-choices .choice-button[aria-pressed="true"]::before{content:"✓ ";font-weight:700}
 .selectable-choices .choice-button:focus-visible{outline:3px solid #e28a16;outline-offset:2px}
+
+.assignment-tools{background:#eaf3fa;border:2px solid #a9c5db;border-radius:16px;padding:18px;margin:16px 0}.assignment-tools h2{margin:0 0 8px}.assignment-tools button{margin:6px}.assignment-pick-label{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;background:#f2f7fa;border-radius:10px;margin-bottom:8px;font-size:17px}.assignment-pick{width:25px;height:25px;accent-color:#267348}.card[hidden]{display:none!important}
