@@ -84,11 +84,47 @@ service cloud.firestore {
     }
 
     match /protectedAssessments/{assessmentId} {
-      allow read: if isTeacher() ||
+      allow read: if isPrimaryAdmin() || isAssistantAdmin() ||
         (request.auth != null
          && exists(/databases/$(database)/documents/assessmentReleases/$(assessmentId))
          && get(/databases/$(database)/documents/assessmentReleases/$(assessmentId)).data.released == true);
-      allow create, update, delete: if isTeacher();
+      allow create, update, delete: if isPrimaryAdmin() || isAssistantAdmin();
+    }
+
+    // Staff access records are provisioned through trusted Firebase Admin SDK.
+    match /staffAccess/{uid} {
+      allow read: if isPrimaryAdmin() ||
+        (request.auth != null && request.auth.uid == uid && hasStaffProfile());
+      allow write: if false;
+    }
+
+    // New instructional resources are explicitly tagged by subject.
+    match /classResources/{resourceId} {
+      allow read: if canManageSubject(resource.data.subject);
+      allow create: if canManageSubject(request.resource.data.subject)
+        && request.resource.data.keys().hasOnly(['subject','title','type','content','updatedAt','createdBy'])
+        && request.resource.data.keys().hasAll(['subject','title','type','content','updatedAt','createdBy'])
+        && request.resource.data.subject in ['math','language','history','science','bible','life-skills']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.content is string
+        && request.resource.data.content.size() <= 100000
+        && request.resource.data.type in ['lesson','quiz','test','assignment']
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+      allow update: if canManageSubject(resource.data.subject)
+        && request.resource.data.subject == resource.data.subject
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','type','content','updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.content is string
+        && request.resource.data.content.size() <= 100000
+        && request.resource.data.type in ['lesson','quiz','test','assignment']
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if canManageSubject(resource.data.subject);
     }
   }
 }
