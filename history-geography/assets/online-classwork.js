@@ -1,0 +1,17 @@
+(async()=>{
+ const button=document.getElementById('online-submit');if(!button)return;const status=document.getElementById('submission-status'),choices=window.HarlanChoices,fields=choices.fields(document.querySelector('main')),slug=location.pathname.split('/').pop().replace('.html',''),id='history-'+slug+'-mc-v1';
+ button.textContent='Submit to teacher dashboard';button.disabled=true;const save=document.createElement('button');save.textContent='Save to school account';save.disabled=true;button.before(save);let online=null,uid=null,locked=true,busy=false,identityChanged=false;
+ function lock(){fields.forEach(f=>choices.lock(f,locked||busy||identityChanged));button.disabled=save.disabled=locked||busy||identityChanged}
+ function responses(){return fields.map((f,i)=>({number:i+1,question:choices.question(f),answer:f.value,work:'',checks:[]}))}
+ if(!window.HARLAN_HISTORY_CONFIG?.enabled){status.textContent='Teacher dashboard delivery awaits approved school-site setup. This local preview saves choices on this device. Download or print a backup if needed.';return}
+ fields.forEach(f=>{choices.set(f,'');choices.lock(f,true)});
+ try{
+ online=await import('../integration/history-online.js');const opened=await online.connectAssignment(id);uid=opened.uid;const draftKey='harlan-history-user:'+uid+':'+id;let local=null;try{local=JSON.parse(localStorage.getItem(draftKey)||'null')}catch{}
+ const saved=opened.saved?.responses||local;if(saved)fields.forEach((f,i)=>{const r=saved.find?.(x=>x.question===choices.question(f))||saved[i];if(r?.question===choices.question(f))choices.set(f,r.answer);f.dispatchEvent(new Event('input',{bubbles:true}))});
+ fields.forEach(f=>f.addEventListener('input',()=>{if(identityChanged||locked)return;try{localStorage.setItem(draftKey,JSON.stringify(responses()))}catch{}}));locked=!['not_submitted','returned'].includes(opened.state.status);
+ await online.watchIdentity(uid,()=>{identityChanged=true;fields.forEach(f=>{choices.set(f,'');f.dispatchEvent(new Event('input',{bubbles:true}))});lock();status.textContent='Sign-in changed. Reload this page before working.'});lock();status.textContent=locked?'Already '+opened.state.status+'. Your teacher must return it before you can edit.':'Choose one answer per question, then submit to the teacher dashboard. You can save an unfinished draft.';
+ const feedback=await online.feedbackFor(id);if(feedback){const p=document.createElement('p');p.textContent='Teacher grade: '+feedback.score+'/'+feedback.maxScore+' — '+feedback.comments;status.after(p)}
+ }catch(e){status.textContent='Dashboard connection unavailable. '+e.message;return}
+ save.onclick=async()=>{if(busy||locked||identityChanged)return;busy=true;lock();try{await online.saveWork(id,responses(),uid);status.textContent='Draft saved to your school account.'}catch(e){status.textContent='Account save not confirmed. '+e.message}finally{busy=false;lock()}};
+ button.onclick=async()=>{if(busy||locked||identityChanged||!choices.complete(fields,status))return;busy=true;lock();status.textContent='Sending to teacher dashboard…';try{const result=await online.submitWork(id,responses(),uid);locked=true;try{localStorage.removeItem('harlan-history-user:'+uid+':'+id)}catch{}status.textContent='Delivery confirmed: attempt '+result.attempt+' submitted to the teacher dashboard for grading.'}catch(e){status.textContent='Delivery is not confirmed. '+e.message+' Your choices remain available.'}finally{busy=false;lock()}};
+})();

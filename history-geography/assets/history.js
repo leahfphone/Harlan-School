@@ -1,0 +1,13 @@
+(()=>{
+ const main=document.querySelector('main')||document.querySelector('.page-shell');if(!main)return;
+ const choices=window.HarlanChoices,fields=choices?.fields(main)||[],slug=location.pathname.split('/').pop().replace('.html','');
+ if(!fields.length)return;
+ const $=id=>document.getElementById(id);
+ function download(name,data){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ const panel=document.createElement('section');panel.className='submission-panel';panel.innerHTML='<h2>Submit to teacher dashboard</h2><p>Choose an answer to each question, then submit for teacher grading. Wait for delivery confirmation. Your teacher can return the work for corrections.</p><button id="online-submit" type="button" disabled>Submit to teacher dashboard</button><p role="status" id="submission-status">Checking school dashboard connection…</p><p><a href="../account.html">School account sign-in</a></p><details><summary>Print or download a backup</summary><p>Backups do not send your work to the dashboard.</p><label for="student-name">Name on backup</label><input type="text" id="student-name" autocomplete="name" maxlength="100"><button id="hand-in" type="button">Download backup file</button><button id="print-all" type="button">Print work</button></details>';main.append(panel);panel.querySelector('a').href=new URL('../../student-account.html',document.currentScript.src).href;
+ try{$('student-name').value=localStorage.getItem('harlan-history-student-name')||''}catch{}
+ $('student-name').oninput=()=>{try{localStorage.setItem('harlan-history-student-name',$('student-name').value)}catch{}};
+ const ch=Number(slug.match(/chapter-(\d+)/)?.[1]||0),kind=slug.startsWith('document-memory-')?'memorization':slug.startsWith('maps-')?'map-study':slug.includes('lesson-')?'reading':slug.includes('checkup')?'checkup':'comprehension';
+ function payload(){return {format:'harlan-history-handin-v1',assignmentId:'history-'+slug+'-mc-v1',chapter:ch,kind,title:document.title,student:$('student-name').value.trim(),createdAt:new Date().toISOString(),responses:fields.map((f,i)=>({number:i+1,question:choices.question(f),answer:f.value,work:'',checks:[]}))}}
+ $('hand-in').onclick=()=>{if(!$('student-name').value.trim()){$('submission-status').textContent='Enter your name for the backup.';$('student-name').focus();return}download(slug+'-multiple-choice-handin.json',payload());$('submission-status').textContent='Backup file prepared. It has not been sent to the dashboard.'};$('print-all').onclick=()=>window.print();
+})();
